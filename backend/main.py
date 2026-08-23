@@ -1,60 +1,29 @@
-# ─── What this file is ────────────────────────────────────────────────────────
-#
-# This is the FastAPI backend — the server that sits between the
-# Next.js frontend and the Supabase database.
-#
-# To run it:
-#   cd backend
-#   uvicorn main:app --reload
-#
-# It will be available at:  http://localhost:8000
-# Auto-generated API docs:  http://localhost:8000/docs
-#
-# ──────────────────────────────────────────────────────────────────────────────
+import os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
-
-# ─── Imports ──────────────────────────────────────────────────────────────────
-
-import os                                          # read environment variables
-from fastapi import FastAPI                        # the web framework
-from fastapi.middleware.cors import CORSMiddleware # allow Next.js to talk to us
-from dotenv import load_dotenv                     # load variables from .env file
-
-
-# ─── Load Environment Variables ───────────────────────────────────────────────
-
-# Reads SUPABASE_URL and SUPABASE_KEY from the backend/.env file
-# so we never hardcode secret credentials in the source code
+# Load .env from this same directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
+# ─── App ─────────────────────────────────────────────────────────────────────
 
-# ─── Create the FastAPI App ───────────────────────────────────────────────────
-
-# `app` is the central object — all routes (URLs) are registered on it
 app = FastAPI(title="EV Rental API", version="0.1.0")
 
-
-# ─── CORS Middleware ──────────────────────────────────────────────────────────
-
-# CORS (Cross-Origin Resource Sharing) is a browser security rule that blocks
-# requests from one domain to another unless the server explicitly allows it.
-# Here we tell FastAPI: "it's okay to accept requests from localhost:3000"
-# (which is where Next.js runs during development).
+# Allow requests from the Next.js dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # only allow our Next.js dev server
-    allow_methods=["*"],                      # allow GET, POST, PUT, DELETE, etc.
-    allow_headers=["*"],                      # allow any request headers
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
 
 # ─── Supabase Client Setup ────────────────────────────────────────────────────
 
 # We create the Supabase client ONCE when the server starts (not on every
 # request) because creating it is slow — this way it's ready instantly.
-
-supabase_client = None   # will hold the connected client, or stay None on error
-db_init_error   = None   # will hold an error message if something goes wrong
+supabase_client = None
+db_init_error   = None
 
 
 def init_supabase():
@@ -80,75 +49,76 @@ def init_supabase():
     try:
         from supabase import create_client
         supabase_client = create_client(url, key)
-        db_init_error = None  # clear any previous error
+        db_init_error = None
     except Exception as exc:
-        db_init_error = str(exc)  # store the error so /health can report it
+        db_init_error = str(exc)
 
 
-# Run the setup function immediately when the server starts
+# Run setup immediately when the server starts
 init_supabase()
-
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
     """
-    Health check endpoint — called by the Next.js frontend to verify
-    that the backend is running AND that the database is reachable.
-
-    Returns JSON like:
-      { "status": "ok", "service": "ev-rental-api", "db": "connected" }
+    Health check — verifies that FastAPI is running and Supabase is reachable.
+    Called by the Next.js home page to show the stack status card.
     """
-
-    # Default state — will be updated below
     db_status = "not_configured"
     db_detail = db_init_error
 
     if supabase_client is not None:
         try:
-            # Send a query to a table that doesn't exist on purpose.
-            # If our credentials are WRONG → Supabase returns an auth error.
-            # If our credentials are CORRECT → Supabase returns a "table not
-            # found" error — which still proves the connection works fine.
+            # Query a non-existent table on purpose.
+            # Wrong credentials → auth error (real problem).
+            # Correct credentials → "table not found" (expected — connection works).
             supabase_client.table("_health_check_does_not_exist") \
-                           .select("*") \
-                           .limit(0) \
-                           .execute()
-
-            # If no exception was raised at all, we're also connected
+                           .select("*").limit(0).execute()
             db_status = "connected"
             db_detail = None
-
         except Exception as exc:
             err = str(exc)
-
-            # These error codes/phrases all mean "table not found" —
-            # i.e. we successfully REACHED Supabase, the credentials work,
-            # the table just doesn't exist (which is expected and fine).
+            # These signals all mean "table not found" = we're connected fine
             connected_signals = [
-                "PGRST205",              # PostgREST: table not in schema cache
-                "42P01",                 # PostgreSQL: undefined table
-                "does not exist",        # generic not-found wording
-                "Could not find the table",
-                "relation",
+                "PGRST205", "42P01", "does not exist",
+                "Could not find the table", "relation",
             ]
-
             if any(signal in err for signal in connected_signals):
-                # "Table not found" = we're connected — mark as success
                 db_status = "connected"
                 db_detail = None
             else:
-                # Something else went wrong (bad credentials, network error, etc.)
                 db_status = "error"
                 db_detail = err
 
-    # Build and return the response
-    # The `**{...} if db_detail else {}` part only adds "db_detail" to the
-    # response when there is actually an error message to show
     return {
         "status":  "ok",
         "service": "ev-rental-api",
         "db":      db_status,
         **( {"db_detail": db_detail} if db_detail else {} ),
     }
+
+
+@app.get("/vehicles")
+async def list_vehicles():
+    """
+    Returns all available scooters from the Supabase vehicles table.
+
+    Called by the Next.js /api/vehicles route handler, which is in turn
+    called by the frontend VehicleGrid component via TanStack Query.
+
+    Flow:  Browser → Next.js /api/vehicles → HERE → Supabase
+    """
+    # If the DB client never initialised, return a 503 immediately
+    if supabase_client is None:
+        raise HTTPException(
+            status_code=503,
+            detail=db_init_error or "Database client not initialised."
+        )
+
+    # Delegate to the service layer — all Supabase logic lives there
+    from services.vehicle_service import get_all_vehicles
+    vehicles = get_all_vehicles(supabase_client)
+
+    # Return the list — FastAPI serialises each Vehicle model to JSON automatically
+    return vehicles
