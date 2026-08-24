@@ -2,18 +2,23 @@
 
 // ─── Feature 2: Custom Data Hook — useVehicle ──────────────────────────────
 //
-// This hook uses TanStack Query to fetch and cache a single scooter's details
-// using its unique vehicle ID.
+// Reusable React hook for fetching and caching the technical profile of a
+// single scooter using its unique UUID.
 //
-// States handled:
-//   - data: The scooter profile (name, specs, pricing, image)
-//   - isLoading: True while fetching data from /api/vehicles/[id]
-//   - isError: True if vehicle ID does not exist (404) or server is unreachable
+// Features:
+//   • Uses TanStack Query with queryKey `["vehicle", id]` to cache each scooter individually.
+//   • Automatically skips fetching (`enabled: Boolean(id)`) if the ID is missing.
+//   • Exposes simple `{ vehicle, isLoading, isError, errorMessage }` state.
+//
+// Usage in components:
+//   const { vehicle, isLoading, isError } = useVehicle(vehicleId);
 //
 // ────────────────────────────────────────────────────────────────────────────
 
 import { useQuery } from "@tanstack/react-query";
 
+// ─── Data Fetcher Function ───────────────────────────────────────────────────
+// Calls our Next.js dynamic proxy route /api/vehicles/[id]
 async function fetchVehicleById(id) {
   if (!id) return null;
 
@@ -27,19 +32,20 @@ async function fetchVehicleById(id) {
   return res.json();
 }
 
+// ─── Custom Hook Definition ──────────────────────────────────────────────────
 export function useVehicle(id) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["vehicle", id],
     queryFn: () => fetchVehicleById(id),
-    enabled: Boolean(id),     // Only fetch when a valid ID is provided
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    retry: 1,                 // Don't retry endlessly if 404
+    enabled: Boolean(id),     // Only execute query when a valid ID parameter is present
+    staleTime: 1000 * 60 * 5, // Cache scooter details in memory for 5 minutes
+    retry: 1,                 // Do not retry repeatedly on 404 Not Found errors
   });
 
   return {
-    vehicle: data,
-    isLoading,
-    isError,
+    vehicle: data,            // The validated scooter object (or undefined)
+    isLoading,                // True while loading from API
+    isError,                  // True if scooter does not exist or server is down
     errorMessage: error?.message,
   };
 }

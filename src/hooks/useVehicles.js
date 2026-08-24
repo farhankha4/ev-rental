@@ -1,49 +1,46 @@
 "use client";
 
-// ─── What this file is ──────────────────────────────────────────────────────
+// ─── Feature 1: Custom Data Hook — useVehicles ──────────────────────────────
 //
-// This is a custom React hook that fetches the list of vehicles.
+// Reusable React hook for fetching and caching the entire scooter catalog.
 //
-// A "hook" is a reusable piece of logic — instead of writing the same
-// fetch call in every component that needs vehicles, we write it once
-// here and every component just calls: const { vehicles } = useVehicles()
+// Why use TanStack Query?
+//   1. Automatic background refetching and data caching (staleTime).
+//   2. Handles loading, error, and data states automatically without boilerplate useEffect.
+//   3. Avoids duplicate HTTP requests across components sharing the same queryKey.
 //
-// TanStack Query's useQuery handles:
-//   - Running the fetch automatically when a component mounts
-//   - Giving us loading / error / success states
-//   - Caching the result so we don't re-fetch unnecessarily
-//   - Retrying failed requests automatically
+// Usage in components:
+//   const { vehicles, isLoading, isError, error } = useVehicles();
 //
 // ────────────────────────────────────────────────────────────────────────────
 
 import { useQuery } from "@tanstack/react-query";
 
-// The function that actually does the HTTP request.
-// Separated from the hook so it's easy to read and test independently.
+// ─── Data Fetcher Function ───────────────────────────────────────────────────
+// Calls our Next.js server proxy at /api/vehicles, which forwards to FastAPI /vehicles.
 async function fetchVehicles() {
-  const res = await fetch("/api/vehicles"); // calls our Next.js proxy route
+  const res = await fetch("/api/vehicles");
 
-  // If the server returned an error status, throw so TanStack Query
-  // can catch it and put the hook into the "error" state
+  // Throw on non-200 responses so TanStack Query catches the error
   if (!res.ok) {
-    throw new Error(`Failed to fetch vehicles (HTTP ${res.status})`);
+    throw new Error(`Failed to fetch vehicles catalog (HTTP ${res.status})`);
   }
 
-  return res.json(); // returns the array of vehicle objects
+  return res.json();
 }
 
-// The custom hook — this is what components import and call
+// ─── Custom Hook Definition ──────────────────────────────────────────────────
 export function useVehicles() {
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["vehicles"],   // unique cache key — TanStack uses this to cache/invalidate
-    queryFn: fetchVehicles,   // the function to call when data is needed
-    staleTime: 1000 * 60 * 5, // data is "fresh" for 5 minutes — won't re-fetch in that window
+    queryKey: ["vehicles"],   // Cache key identifier for the catalog query
+    queryFn: fetchVehicles,   // Function executed when data needs fetching
+    staleTime: 1000 * 60 * 5, // Data stays fresh in cache for 5 minutes
   });
 
   return {
-    vehicles: data ?? [],  // always return an array (never undefined)
-    isLoading,             // true while the first fetch is in progress
-    isError,               // true if the fetch failed
-    error,                 // the actual Error object (has .message)
+    vehicles: data ?? [],     // Always return an array (defaults to empty list)
+    isLoading,                // True during initial fetch
+    isError,                  // True if the request failed
+    error,                    // The Error instance with error message
   };
 }

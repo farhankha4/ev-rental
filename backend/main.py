@@ -1,36 +1,48 @@
-# ─── Feature 0, 1, 2, 3 & 4: FastAPI Backend Server ────────────────────────
+# ─── Feature 0, 1, 2, 3, 4 & 5: FastAPI Backend Server Entrypoint ─────────────
 #
-# Central entrypoint for the FastAPI REST API.
+# This is the central entrypoint and routing hub for the SwiftVolt FastAPI backend.
+# It handles HTTP requests from the Next.js frontend, connects to the Supabase
+# database, and enforces authentication and business logic across all features.
 #
-# Endpoints:
-#   GET  /health           -> Feature 0: Health check & DB connection probe
-#   GET  /vehicles         -> Feature 1: List all available scooters
-#   GET  /vehicles/{id}    -> Feature 2: Get full details of a specific scooter
-#   POST /auth/register    -> Feature 3: Register new user (bcrypt hash & JWT)
-#   POST /auth/login       -> Feature 3: Login user & return JWT token
-#   GET  /auth/me          -> Feature 3: Get profile of logged-in user (protected)
-#   POST /bookings         -> Feature 4: Create scooter reservation (protected)
-#   GET  /bookings/{id}    -> Feature 4: Get booking confirmation (protected)
+# Summary of Endpoints by Feature:
+#   • Feature 0 (Skeleton Setup):
+#       GET  /health                      -> Verifies server status & database connectivity
+#   • Feature 1 (Browse Scooters):
+#       GET  /vehicles                    -> Retrieves all available SwiftVolt scooters
+#   • Feature 2 (Scooter Details):
+#       GET  /vehicles/{id}               -> Retrieves detailed technical profile of one scooter
+#   • Feature 3 (Authentication):
+#       POST /auth/register               -> Hashes password with bcrypt & registers new user
+#       POST /auth/login                  -> Validates credentials & issues signed JWT token
+#       GET  /auth/me                     -> Protected: Returns logged-in user's profile
+#   • Feature 4 & 5 (Bookings & Availability):
+#       POST /bookings                    -> Protected: Reserves scooter with strict conflict checks
+#       GET  /bookings/{id}               -> Protected: Fetches confirmation receipt for a booking
+#       GET  /vehicles/{id}/availability  -> Checks if date range is free from collisions
 #
 # ────────────────────────────────────────────────────────────────────────────
 
 import os
-from fastapi import FastAPI, HTTPException, Depends
+from datetime import datetime
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-# Load environment variables from backend/.env
+# ─── 1. Load Environment Variables ───────────────────────────────────────────
+# Reads Supabase credentials (URL, anon key) and JWT settings from backend/.env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
-# ─── App Initialization ──────────────────────────────────────────────────────
-
+# ─── 2. FastAPI Application Initialization ───────────────────────────────────
 app = FastAPI(
     title="EV Rental API",
-    description="Backend API for SwiftVolt electric vehicle rental platform",
-    version="0.4.0"
+    description="REST API backend for SwiftVolt electric scooter rental platform",
+    version="0.5.0"
 )
 
-# Allow Cross-Origin Resource Sharing (CORS) from Next.js frontend
+# ─── 3. CORS (Cross-Origin Resource Sharing) Middleware ───────────────────────
+# Allows our Next.js frontend (running on http://localhost:3000) to communicate
+# with this backend without browser security blocks.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -39,16 +51,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Supabase Client Lifecycle ───────────────────────────────────────────────
-
+# ─── 4. Supabase Client Lifecycle Management ──────────────────────────────────
+# The Supabase client is initialized once when the server boots up.
+# Reusing this single client avoids expensive connection handshakes on every request.
 supabase_client = None
 db_init_error   = None
 
 
 def init_supabase():
     """
-    Reads credentials from .env and initializes the Supabase client once at startup.
-    Any configuration errors are captured without terminating the server.
+    Reads credentials from .env and creates the global Supabase client instance.
+    If credentials are missing or invalid, errors are stored in `db_init_error`
+    so the /health route can report them clearly rather than crashing the server.
     """
     global supabase_client, db_init_error
 
@@ -56,10 +70,10 @@ def init_supabase():
     key = os.getenv("SUPABASE_KEY", "")
 
     if not url or url == "https://your-project.supabase.co":
-        db_init_error = "SUPABASE_URL not configured — check backend/.env"
+        db_init_error = "SUPABASE_URL not configured — please check backend/.env"
         return
     if not key or key == "your-anon-key-here":
-        db_init_error = "SUPABASE_KEY not configured — check backend/.env"
+        db_init_error = "SUPABASE_KEY not configured — please check backend/.env"
         return
 
     try:
@@ -70,23 +84,27 @@ def init_supabase():
         db_init_error = str(exc)
 
 
-# Run client initialization immediately
+# Initialize database connection on boot
 init_supabase()
 
 
-# ─── Feature 0: Health Routes ────────────────────────────────────────────────
+# ─── Feature 0: Health & Diagnostic Endpoints ─────────────────────────────────
 
 @app.get("/health")
 async def health():
     """
-    [Feature 0]
-    Verifies that FastAPI is running and Supabase is reachable.
+    [Feature 0 - Part 2 & 3: Health Check]
+    Verifies that FastAPI is running and sends a probe query to Supabase.
+    Called by Next.js /api/health to power the Stack Status card on the home page.
     """
     db_status = "not_configured"
     db_detail = db_init_error
 
     if supabase_client is not None:
         try:
+            # Query a non-existent table on purpose:
+            # If credentials are WRONG -> Auth/API key error (real issue).
+            # If credentials are OK -> "Table not found" error (expected -> proves DB is reachable).
             supabase_client.table("_health_check_does_not_exist").select("*").limit(0).execute()
             db_status = "connected"
             db_detail = None
@@ -111,13 +129,14 @@ async def health():
     }
 
 
-# ─── Feature 1 & 2: Vehicle Routes ──────────────────────────────────────────
+# ─── Feature 1, 2 & 5: Scooter Endpoints ─────────────────────────────────────
 
 @app.get("/vehicles")
 async def list_vehicles():
     """
-    [Feature 1]
-    Returns a list of all available scooters.
+    [Feature 1 - Part 2: Browse Scooters]
+    Returns a list of all available scooters in the catalog.
+    Delegates database querying to services/vehicle_service.py.
     """
     if supabase_client is None:
         raise HTTPException(
@@ -132,8 +151,9 @@ async def list_vehicles():
 @app.get("/vehicles/{vehicle_id}")
 async def get_vehicle(vehicle_id: str):
     """
-    [Feature 2]
-    Returns the detailed specification for a specific scooter identified by UUID.
+    [Feature 2 - Part 1: Scooter Details]
+    Fetches full specifications for a single scooter by UUID.
+    Returns HTTP 404 if the scooter ID is not found.
     """
     if supabase_client is None:
         raise HTTPException(
@@ -153,7 +173,40 @@ async def get_vehicle(vehicle_id: str):
     return vehicle
 
 
-# ─── Feature 3: Authentication Routes ───────────────────────────────────────
+@app.get("/vehicles/{vehicle_id}/availability")
+async def check_vehicle_availability(
+    vehicle_id: str,
+    pickup_time: datetime = Query(..., description="ISO 8601 pickup datetime"),
+    return_time: datetime = Query(..., description="ISO 8601 return datetime")
+):
+    """
+    [Feature 5 - Part 1: Date Collision Check]
+    Checks if a scooter has any overlapping bookings for the requested dates.
+    Returns: { "available": true/false, "vehicle_id": ..., "pickup_time": ..., "return_time": ... }
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    if return_time <= pickup_time:
+        raise HTTPException(status_code=400, detail="Return time must be after pickup time.")
+
+    from services.booking_service import is_vehicle_available
+    is_free = is_vehicle_available(
+        supabase_client=supabase_client,
+        vehicle_id=vehicle_id,
+        pickup_time=pickup_time,
+        return_time=return_time
+    )
+
+    return {
+        "vehicle_id": vehicle_id,
+        "pickup_time": pickup_time.isoformat(),
+        "return_time": return_time.isoformat(),
+        "available": is_free
+    }
+
+
+# ─── Feature 3: User Authentication Endpoints ────────────────────────────────
 
 from models.user import UserRegister, UserLogin, UserResponse, TokenResponse
 from dependencies.auth import get_current_user
@@ -162,8 +215,9 @@ from dependencies.auth import get_current_user
 @app.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserRegister):
     """
-    [Feature 3 - Part 2]
-    Registers a new user with hashed password and returns access token.
+    [Feature 3 - Part 2: User Registration]
+    Validates input schema, hashes password using bcrypt, stores user row
+    in Supabase, and returns a signed JWT access token.
     """
     if supabase_client is None:
         raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
@@ -175,8 +229,9 @@ async def register(user_data: UserRegister):
 @app.post("/auth/login", response_model=TokenResponse)
 async def login(login_data: UserLogin):
     """
-    [Feature 3 - Part 2]
-    Authenticates email & password, returning JWT access token on success.
+    [Feature 3 - Part 2: User Login]
+    Validates email and plaintext password against stored bcrypt hash in Supabase.
+    Returns a signed JWT access token and public user profile on success.
     """
     if supabase_client is None:
         raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
@@ -188,14 +243,14 @@ async def login(login_data: UserLogin):
 @app.get("/auth/me", response_model=UserResponse)
 async def get_my_profile(current_user: UserResponse = Depends(get_current_user)):
     """
-    [Feature 3 - Part 2]
-    Protected endpoint: returns the authenticated user's profile.
-    Requires header: `Authorization: Bearer <access_token>`
+    [Feature 3 - Part 2: Current User Session]
+    Protected route: verifies the Bearer JWT token from the Authorization header
+    and returns the active user's account details.
     """
     return current_user
 
 
-# ─── Feature 4: Booking Routes ──────────────────────────────────────────────
+# ─── Feature 4 & 5: Reservation Endpoints ───────────────────────────────────
 
 from models.booking import BookingCreate, BookingResponse
 
@@ -206,9 +261,12 @@ async def create_new_booking(
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
-    [Feature 4 - Part 2]
-    Creates a new reservation for a scooter tied to the logged-in user.
-    Calculates duration, applies pricing, and records the booking in Supabase.
+    [Feature 4 & 5 - Part 2: Create Reservation with Overlap Check]
+    Protected route: creates a new scooter reservation for the logged-in user.
+    1. Checks for scheduling conflicts (Feature 5).
+    2. Computes rental duration in days (math.ceil).
+    3. Calculates total cost = days * vehicle.price_per_day.
+    4. Inserts the booking row into Supabase.
     """
     if supabase_client is None:
         raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
@@ -223,8 +281,9 @@ async def get_booking_details(
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
-    [Feature 4 - Part 2]
-    Retrieves booking details for a specific reservation belonging to current user.
+    [Feature 4 - Part 2: Booking Details Lookup]
+    Protected route: retrieves booking details for a specific reservation
+    belonging to the currently logged-in user.
     """
     if supabase_client is None:
         raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
