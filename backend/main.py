@@ -1,8 +1,6 @@
-# ─── Feature 0, 1, 2 & 3: FastAPI Backend Server ────────────────────────────
+# ─── Feature 0, 1, 2, 3 & 4: FastAPI Backend Server ────────────────────────
 #
-# This is the central entrypoint for the FastAPI REST API.
-# It registers middleware, manages Supabase client lifecycle,
-# and exposes HTTP routes for health checks, vehicle data, and authentication.
+# Central entrypoint for the FastAPI REST API.
 #
 # Endpoints:
 #   GET  /health           -> Feature 0: Health check & DB connection probe
@@ -11,6 +9,8 @@
 #   POST /auth/register    -> Feature 3: Register new user (bcrypt hash & JWT)
 #   POST /auth/login       -> Feature 3: Login user & return JWT token
 #   GET  /auth/me          -> Feature 3: Get profile of logged-in user (protected)
+#   POST /bookings         -> Feature 4: Create scooter reservation (protected)
+#   GET  /bookings/{id}    -> Feature 4: Get booking confirmation (protected)
 #
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="EV Rental API",
     description="Backend API for SwiftVolt electric vehicle rental platform",
-    version="0.3.0"
+    version="0.4.0"
 )
 
 # Allow Cross-Origin Resource Sharing (CORS) from Next.js frontend
@@ -155,8 +155,8 @@ async def get_vehicle(vehicle_id: str):
 
 # ─── Feature 3: Authentication Routes ───────────────────────────────────────
 
-# Import Pydantic models for request bodies
 from models.user import UserRegister, UserLogin, UserResponse, TokenResponse
+from dependencies.auth import get_current_user
 
 
 @app.post("/auth/register", response_model=TokenResponse)
@@ -185,9 +185,6 @@ async def login(login_data: UserLogin):
     return authenticate_user(supabase_client, login_data)
 
 
-from dependencies.auth import get_current_user
-
-
 @app.get("/auth/me", response_model=UserResponse)
 async def get_my_profile(current_user: UserResponse = Depends(get_current_user)):
     """
@@ -196,3 +193,46 @@ async def get_my_profile(current_user: UserResponse = Depends(get_current_user))
     Requires header: `Authorization: Bearer <access_token>`
     """
     return current_user
+
+
+# ─── Feature 4: Booking Routes ──────────────────────────────────────────────
+
+from models.booking import BookingCreate, BookingResponse
+
+
+@app.post("/bookings", response_model=BookingResponse)
+async def create_new_booking(
+    booking_data: BookingCreate,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    [Feature 4 - Part 2]
+    Creates a new reservation for a scooter tied to the logged-in user.
+    Calculates duration, applies pricing, and records the booking in Supabase.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.booking_service import create_booking
+    return create_booking(supabase_client, str(current_user.id), booking_data)
+
+
+@app.get("/bookings/{booking_id}", response_model=BookingResponse)
+async def get_booking_details(
+    booking_id: str,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    [Feature 4 - Part 2]
+    Retrieves booking details for a specific reservation belonging to current user.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.booking_service import get_booking_by_id
+    booking = get_booking_by_id(supabase_client, booking_id, str(current_user.id))
+
+    if not booking:
+        raise HTTPException(status_code=404, detail=f"Booking with ID '{booking_id}' not found.")
+
+    return booking

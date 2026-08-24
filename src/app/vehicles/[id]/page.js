@@ -1,11 +1,12 @@
 "use client";
 
-// ─── Feature 2: Dynamic Page — /vehicles/[id] ──────────────────────────────
+// ─── Feature 2 & 4: Dynamic Page — /vehicles/[id] ──────────────────────────
 //
-// This is the Scooter Detail Page.
-// It receives the vehicle `id` from the dynamic route parameter,
-// fetches the complete scooter profile using `useVehicle(id)`,
-// and renders the gallery, specs, description, features, and reservation prompt.
+// Scooter Detail Page with embedded real-time Booking Widget.
+//
+// Features:
+//   - Feature 2: Gallery, Specs, Narrative Description, Included Benefits
+//   - Feature 4: Interactive BookingWidget for date selection & real reservations
 //
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ import VehicleGallery from "@/components/VehicleGallery";
 import VehicleSpecs from "@/components/VehicleSpecs";
 import VehicleFeatures from "@/components/VehicleFeatures";
 import VehicleDescription from "@/components/VehicleDescription";
+import BookingWidget from "@/components/BookingWidget";
 
 export default function VehicleDetailPage() {
   const params = useParams();
@@ -117,33 +119,13 @@ export default function VehicleDetailPage() {
             <VehicleFeatures />
           </div>
 
-          {/* Right Column (1 col wide): Sticky Specs & Action Widget */}
+          {/* Right Column (1 col wide): Specs & Feature 4 Booking Widget */}
           <div className="space-y-6 lg:sticky lg:top-20">
+            {/* Feature 4: Interactive Booking Widget */}
+            <BookingWidget vehicle={vehicle} />
+
+            {/* Technical Specifications */}
             <VehicleSpecs vehicle={vehicle} />
-
-            {/* ── Reservation Prompt Card (Feature 4 Booking Hook Point) ──── */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm space-y-4">
-              <h2 className="text-base font-bold text-gray-900">
-                Ready to Ride?
-              </h2>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Reserve your SwiftVolt {vehicle.name} in advance with zero deposit.
-                Pickup is available 24/7 with the SwiftVolt app.
-              </p>
-
-              <button
-                type="button"
-                className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
-                onClick={() => alert(`Booking widget for ${vehicle.name} will be connected in Feature 4!`)}
-              >
-                <span>⚡</span>
-                <span>Proceed to Book (Feature 4)</span>
-              </button>
-
-              <p className="text-[11px] text-center text-gray-400">
-                Free cancellation up to 1 hour before scheduled pickup.
-              </p>
-            </div>
           </div>
 
         </div>
