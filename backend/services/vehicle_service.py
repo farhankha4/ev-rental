@@ -1,51 +1,74 @@
-# ─── What this file is ──────────────────────────────────────────────────────
+# ─── Feature 1 & 2: Vehicle Service Layer ─────────────────────────────────────
 #
-# This is the "service" layer for vehicles.
-#
-# A service is where all the database logic lives — keeping it separate from
-# the route (which just handles HTTP) means:
-#   - Routes stay thin and readable
-#   - If we swap Supabase for a different DB later, we only change this file
-#   - We can test the database logic independently of the HTTP layer
+# This file contains all database query logic for vehicles in Supabase.
+# Keeping queries isolated here ensures:
+#   1. Route handlers in main.py remain clean and focused only on HTTP logic.
+#   2. Changes to database schema or client only require updating this file.
+#   3. Service functions can be unit-tested independently.
 #
 # ────────────────────────────────────────────────────────────────────────────
 
-from models.vehicle import Vehicle   # import our Pydantic model
+from typing import Optional
+from models.vehicle import Vehicle   # Pydantic model for vehicle validation
 
 
 def get_all_vehicles(supabase_client) -> list[Vehicle]:
     """
-    Fetches all rows from the `vehicles` table in Supabase.
+    [Feature 1 - Part 2]
+    Fetches all available vehicles from the `vehicles` table in Supabase.
 
     Args:
-        supabase_client: the already-initialised Supabase client from main.py
+        supabase_client: Initialized Supabase client instance from main.py.
 
     Returns:
-        A list of Vehicle objects (one per scooter row in the DB).
-        Returns an empty list if something goes wrong, so the route
-        can still respond with [] rather than crashing.
+        list[Vehicle]: List of validated Vehicle Pydantic models.
     """
-
     try:
-        # .table()   → which table to query
-        # .select()  → which columns to return (* means all columns)
-        # .eq()      → filter: only return rows where available = True
-        # .execute() → actually run the query and get the result
+        # Query all rows where available == True
         response = (
             supabase_client
             .table("vehicles")
             .select("*")
-            .eq("available", True)   # only show scooters that can be rented
+            .eq("available", True)
             .execute()
         )
 
-        # response.data is a list of dicts, one dict per row.
-        # We convert each dict into a Vehicle object so Pydantic
-        # can validate and serialize it cleanly.
+        # Convert raw database dictionaries into Pydantic models
         return [Vehicle(**row) for row in response.data]
 
     except Exception as exc:
-        # Log the error for the developer and return an empty list
-        # so the API response is [] rather than a 500 crash
-        print(f"[vehicle_service] Error fetching vehicles: {exc}")
+        print(f"[vehicle_service] Error fetching all vehicles: {exc}")
         return []
+
+
+def get_vehicle_by_id(supabase_client, vehicle_id: str) -> Optional[Vehicle]:
+    """
+    [Feature 2 - Part 1]
+    Fetches a single vehicle by its UUID from the `vehicles` table in Supabase.
+
+    Args:
+        supabase_client: Initialized Supabase client instance.
+        vehicle_id: The string representation of the vehicle UUID.
+
+    Returns:
+        Optional[Vehicle]: Vehicle object if found, or None if not found/error.
+    """
+    try:
+        # Query exactly matching the vehicle ID
+        response = (
+            supabase_client
+            .table("vehicles")
+            .select("*")
+            .eq("id", vehicle_id)
+            .execute()
+        )
+
+        # If matching rows exist, validate and return the first row
+        if response.data and len(response.data) > 0:
+            return Vehicle(**response.data[0])
+
+        return None
+
+    except Exception as exc:
+        print(f"[vehicle_service] Error fetching vehicle by id '{vehicle_id}': {exc}")
+        return None

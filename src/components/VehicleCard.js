@@ -1,87 +1,73 @@
-// ─── What this file is ──────────────────────────────────────────────────────
+// ─── Feature 1 & 2: Presentational Component — VehicleCard ─────────────────
 //
-// VehicleCard — displays one scooter as a styled card.
-//
-// This is a pure "presentational" component: it receives one vehicle
-// object as a prop and just renders it. It doesn't fetch data itself.
-//
-// Props:
-//   vehicle — a single vehicle object from the API, shaped like:
-//   {
-//     id, name, battery_kwh, range_km, top_speed_kmh,
-//     price_per_day, image_url, available
-//   }
+// Displays a scooter card summary on the /vehicles browsing catalog.
+// Clicking "View Details" or the card title navigates directly to /vehicles/[id]
+// using Next.js <Link> for seamless client-side page transitions.
 //
 // ────────────────────────────────────────────────────────────────────────────
+
+import Link from "next/link";
 
 export default function VehicleCard({ vehicle }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200">
 
-      {/* ── Scooter Image ──────────────────────────────────────────────── */}
-      <div className="relative w-full h-48 bg-gray-100">
+      {/* ── Scooter Image with Link ──────────────────────────────────────── */}
+      <Link href={`/vehicles/${vehicle.id}`} className="block relative w-full h-48 bg-gray-100 group overflow-hidden">
         {vehicle.image_url ? (
-          // We use a regular <img> here because the images are from an
-          // external placeholder service. When we add real images later
-          // we'll switch to Next.js <Image> for automatic optimisation.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={vehicle.image_url}
             alt={vehicle.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          // Fallback when there's no image URL
           <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
             ⚡
           </div>
         )}
-      </div>
+      </Link>
 
-      {/* ── Card Body ──────────────────────────────────────────────────── */}
+      {/* ── Card Content ─────────────────────────────────────────────────── */}
       <div className="p-4 flex flex-col flex-1">
 
-        {/* Scooter name */}
-        <h3 className="text-lg font-bold text-gray-900 mb-3">
-          {vehicle.name}
-        </h3>
+        {/* Scooter Name */}
+        <Link href={`/vehicles/${vehicle.id}`}>
+          <h3 className="text-lg font-bold text-gray-900 mb-3 hover:text-sky-600 transition-colors">
+            {vehicle.name}
+          </h3>
+        </Link>
 
-        {/* ── Specs Grid ─────────────────────────────────────────────── */}
-        {/* Three key specs shown as a small 3-column grid */}
+        {/* ── Key Specs Grid ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-2 mb-4">
           <SpecBadge label="Range" value={`${vehicle.range_km} km`} />
           <SpecBadge label="Top Speed" value={`${vehicle.top_speed_kmh} km/h`} />
           <SpecBadge label="Battery" value={`${vehicle.battery_kwh} kWh`} />
         </div>
 
-        {/* Push price and button to the bottom of the card */}
-        <div className="mt-auto flex items-center justify-between">
-
-          {/* Price per day */}
+        {/* ── Price and Details Action Button ────────────────────────────── */}
+        <div className="mt-auto flex items-center justify-between pt-2 border-t border-gray-100">
           <div>
             <span className="text-2xl font-bold text-gray-900">
-              ₹{vehicle.price_per_day.toLocaleString("en-IN")}
+              ₹{Number(vehicle.price_per_day).toLocaleString("en-IN")}
             </span>
-            <span className="text-sm text-gray-500 ml-1">/ day</span>
+            <span className="text-xs text-gray-500 ml-1">/ day</span>
           </div>
 
-          {/* Rent Now button — non-functional for now (Feature 2 adds booking) */}
-          <button
+          <Link
+            href={`/vehicles/${vehicle.id}`}
             className="bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors duration-150"
-            onClick={() => console.log(`Rent clicked: ${vehicle.id}`)}
           >
-            Rent Now
-          </button>
-
+            View Details
+          </Link>
         </div>
+
       </div>
     </div>
   );
 }
 
-// ─── Small helper component ──────────────────────────────────────────────────
-
-// SpecBadge — renders one labelled spec value (e.g. "Range / 140 km")
+// ─── Reusable Spec Mini-Badge ───────────────────────────────────────────────
 function SpecBadge({ label, value }) {
   return (
     <div className="bg-gray-50 rounded-lg p-2 text-center">
