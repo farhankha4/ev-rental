@@ -1,32 +1,35 @@
 "use client";
 
-// ─── What this file is ──────────────────────────────────────────────────────
+// ─── Feature 1 & 3: Global Application Providers ───────────────────────────
 //
-// TanStack Query needs a "QueryClientProvider" to be set up somewhere
-// above every component that uses data fetching hooks (like useVehicles).
-//
-// Because providers use React hooks internally, they MUST be Client
-// Components — hence the "use client" directive at the top.
-//
-// We wrap the entire app with this provider in layout.js so that
-// every page automatically has access to TanStack Query.
+// Combines client-side context providers:
+//   1. QueryClientProvider (TanStack Query) for data caching & state
+//   2. AuthProvider (Feature 3) for user session & JWT management
 //
 // ────────────────────────────────────────────────────────────────────────────
 
+import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function Providers({ children }) {
-  // Create a QueryClient instance.
-  // useState ensures we create it only ONCE per page load — not on every render.
-  // QueryClient holds the in-memory cache for all fetched data.
-  const [queryClient] = useState(() => new QueryClient());
+  // Create a persistent QueryClient instance for client-side caching
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
 
   return (
-    // Wrap all children (every page) with the provider.
-    // Now any component inside can call useQuery() and useVehicles().
     <QueryClientProvider client={queryClient}>
-      {children}
+      <AuthProvider>
+        {children}
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

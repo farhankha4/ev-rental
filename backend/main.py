@@ -1,18 +1,21 @@
-# ─── Feature 0, 1 & 2: FastAPI Backend Server ───────────────────────────────
+# ─── Feature 0, 1, 2 & 3: FastAPI Backend Server ────────────────────────────
 #
 # This is the central entrypoint for the FastAPI REST API.
 # It registers middleware, manages Supabase client lifecycle,
-# and exposes HTTP routes for health checks and vehicle data.
+# and exposes HTTP routes for health checks, vehicle data, and authentication.
 #
 # Endpoints:
-#   GET /health         -> Feature 0: Health check & DB connection probe
-#   GET /vehicles       -> Feature 1: List all available scooters
-#   GET /vehicles/{id}  -> Feature 2: Get full details of a specific scooter
+#   GET  /health           -> Feature 0: Health check & DB connection probe
+#   GET  /vehicles         -> Feature 1: List all available scooters
+#   GET  /vehicles/{id}    -> Feature 2: Get full details of a specific scooter
+#   POST /auth/register    -> Feature 3: Register new user (bcrypt hash & JWT)
+#   POST /auth/login       -> Feature 3: Login user & return JWT token
+#   GET  /auth/me          -> Feature 3: Get profile of logged-in user (protected)
 #
 # ────────────────────────────────────────────────────────────────────────────
 
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -24,13 +27,14 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="EV Rental API",
     description="Backend API for SwiftVolt electric vehicle rental platform",
-    version="0.2.0"
+    version="0.3.0"
 )
 
 # Allow Cross-Origin Resource Sharing (CORS) from Next.js frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -70,7 +74,7 @@ def init_supabase():
 init_supabase()
 
 
-# ─── Routes ───────────────────────────────────────────────────────────────────
+# ─── Feature 0: Health Routes ────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
@@ -83,7 +87,6 @@ async def health():
 
     if supabase_client is not None:
         try:
-            # Query a non-existent table to verify network connection and API key validity
             supabase_client.table("_health_check_does_not_exist").select("*").limit(0).execute()
             db_status = "connected"
             db_detail = None
@@ -108,6 +111,8 @@ async def health():
     }
 
 
+# ─── Feature 1 & 2: Vehicle Routes ──────────────────────────────────────────
+
 @app.get("/vehicles")
 async def list_vehicles():
     """
@@ -127,9 +132,8 @@ async def list_vehicles():
 @app.get("/vehicles/{vehicle_id}")
 async def get_vehicle(vehicle_id: str):
     """
-    [Feature 2 - Part 1]
+    [Feature 2]
     Returns the detailed specification for a specific scooter identified by UUID.
-    If the scooter is not found or invalid, returns HTTP 404.
     """
     if supabase_client is None:
         raise HTTPException(
@@ -147,3 +151,48 @@ async def get_vehicle(vehicle_id: str):
         )
 
     return vehicle
+
+
+# ─── Feature 3: Authentication Routes ───────────────────────────────────────
+
+# Import Pydantic models for request bodies
+from models.user import UserRegister, UserLogin, UserResponse, TokenResponse
+
+
+@app.post("/auth/register", response_model=TokenResponse)
+async def register(user_data: UserRegister):
+    """
+    [Feature 3 - Part 2]
+    Registers a new user with hashed password and returns access token.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.auth_service import register_user
+    return register_user(supabase_client, user_data)
+
+
+@app.post("/auth/login", response_model=TokenResponse)
+async def login(login_data: UserLogin):
+    """
+    [Feature 3 - Part 2]
+    Authenticates email & password, returning JWT access token on success.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.auth_service import authenticate_user
+    return authenticate_user(supabase_client, login_data)
+
+
+from dependencies.auth import get_current_user
+
+
+@app.get("/auth/me", response_model=UserResponse)
+async def get_my_profile(current_user: UserResponse = Depends(get_current_user)):
+    """
+    [Feature 3 - Part 2]
+    Protected endpoint: returns the authenticated user's profile.
+    Requires header: `Authorization: Bearer <access_token>`
+    """
+    return current_user
