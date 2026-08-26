@@ -1,13 +1,13 @@
 "use client";
 
-// ─── Feature 3: Navigation Bar — Navbar ────────────────────────────────────
+// ─── Feature 3 & 6: Navigation Bar — Navbar ──────────────────────────────────
 //
 // Dynamic navigation bar displayed across all pages.
 //
 // Behavior:
 //   - Unauthenticated: Shows "Browse Scooters", "Log In", and "Register" buttons.
-//   - Authenticated: Shows "Browse Scooters", user greeting badge "Hi, [Name]",
-//     and an interactive "Log Out" button.
+//   - Authenticated: Shows "Browse Scooters", "My Bookings" link, user greeting badge
+//     "Hi, [Name]", and an interactive "Log Out" button.
 //
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -39,16 +39,29 @@ export default function Navbar() {
             Browse Scooters
           </Link>
 
+          {/* Feature 6: Dashboard Link (Only visible when logged in) */}
+          {isAuthenticated && (
+            <Link
+              href="/dashboard"
+              className="text-gray-600 hover:text-sky-600 transition-colors"
+            >
+              My Bookings
+            </Link>
+          )}
+
           {/* Loading state indicator (subtle pulse while session resolves) */}
           {isLoading ? (
             <div className="h-8 w-20 bg-gray-100 animate-pulse rounded-lg" />
           ) : isAuthenticated && user ? (
             /* ── Authenticated User State ──────────────────────────────── */
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 bg-sky-50 text-sky-800 px-3 py-1.5 rounded-full text-xs font-semibold border border-sky-100">
+              <Link
+                href="/dashboard"
+                className="hidden sm:flex items-center gap-2 bg-sky-50 text-sky-800 px-3 py-1.5 rounded-full text-xs font-semibold border border-sky-100 hover:bg-sky-100 transition-colors"
+              >
                 <span className="w-2 h-2 bg-green-500 rounded-full" />
                 <span>Hi, {user.full_name.split(" ")[0]}</span>
-              </div>
+              </Link>
 
               <button
                 type="button"

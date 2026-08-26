@@ -1,4 +1,4 @@
-# ─── Feature 0, 1, 2, 3, 4 & 5: FastAPI Backend Server Entrypoint ─────────────
+# ─── Feature 0, 1, 2, 3, 4, 5 & 6: FastAPI Backend Server Entrypoint ───────────
 #
 # This is the central entrypoint and routing hub for the SwiftVolt FastAPI backend.
 # It handles HTTP requests from the Next.js frontend, connects to the Supabase
@@ -19,6 +19,8 @@
 #       POST /bookings                    -> Protected: Reserves scooter with strict conflict checks
 #       GET  /bookings/{id}               -> Protected: Fetches confirmation receipt for a booking
 #       GET  /vehicles/{id}/availability  -> Checks if date range is free from collisions
+#   • Feature 6 (My Bookings Dashboard):
+#       GET  /bookings/my-bookings        -> Protected: Returns all reservations for logged-in user
 #
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -37,7 +39,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="EV Rental API",
     description="REST API backend for SwiftVolt electric scooter rental platform",
-    version="0.5.0"
+    version="0.6.0"
 )
 
 # ─── 3. CORS (Cross-Origin Resource Sharing) Middleware ───────────────────────
@@ -250,7 +252,7 @@ async def get_my_profile(current_user: UserResponse = Depends(get_current_user))
     return current_user
 
 
-# ─── Feature 4 & 5: Reservation Endpoints ───────────────────────────────────
+# ─── Feature 4, 5 & 6: Reservation Endpoints ──────────────────────────────────
 
 from models.booking import BookingCreate, BookingResponse
 
@@ -273,6 +275,22 @@ async def create_new_booking(
 
     from services.booking_service import create_booking
     return create_booking(supabase_client, str(current_user.id), booking_data)
+
+
+@app.get("/bookings/my-bookings", response_model=list[BookingResponse])
+async def list_my_bookings(
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    [Feature 6 - Part 2: My Bookings Dashboard]
+    Protected route: retrieves all bookings belonging to the currently logged-in user.
+    MUST come before /bookings/{booking_id} so FastAPI doesn't treat 'my-bookings' as an ID parameter.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.booking_service import get_user_bookings
+    return get_user_bookings(supabase_client, str(current_user.id))
 
 
 @app.get("/bookings/{booking_id}", response_model=BookingResponse)
