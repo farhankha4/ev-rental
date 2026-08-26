@@ -1,4 +1,4 @@
-# ─── Feature 0, 1, 2, 3, 4, 5, 6 & 7: FastAPI Backend Server Entrypoint ────────
+# ─── Feature 0, 1, 2, 3, 4, 5, 6, 7 & 8: FastAPI Backend Server Entrypoint ─────
 #
 # This is the central entrypoint and routing hub for the SwiftVolt FastAPI backend.
 # It handles HTTP requests from the Next.js frontend, connects to the Supabase
@@ -24,6 +24,13 @@
 #   • Feature 7 (Razorpay Payments):
 #       POST /payments/create-order       -> Protected: Generates Razorpay order ID for checkout
 #       POST /payments/verify             -> Protected: Verifies HMAC signature & confirms payment
+#   • Feature 8 (Admin Dashboard):
+#       GET  /admin/vehicles              -> Admin: Lists all scooters (including disabled)
+#       POST /admin/vehicles              -> Admin: Adds a new scooter to the catalog
+#       PUT  /admin/vehicles/{id}         -> Admin: Updates scooter specifications
+#       PATCH /admin/vehicles/{id}/toggle-availability -> Admin: Toggles maintenance status
+#       DELETE /admin/vehicles/{id}       -> Admin: Removes scooter from catalog
+#       GET  /admin/bookings              -> Admin: Retrieves all platform user bookings
 #
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -42,7 +49,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="EV Rental API",
     description="REST API backend for SwiftVolt electric scooter rental platform",
-    version="0.7.0"
+    version="0.8.0"
 )
 
 # ─── 3. CORS (Cross-Origin Resource Sharing) Middleware ───────────────────────
@@ -214,7 +221,7 @@ async def check_vehicle_availability(
 # ─── Feature 3: User Authentication Endpoints ────────────────────────────────
 
 from models.user import UserRegister, UserLogin, UserResponse, TokenResponse
-from dependencies.auth import get_current_user
+from dependencies.auth import get_current_user, get_current_admin_user
 
 
 @app.post("/auth/register", response_model=TokenResponse)
@@ -360,3 +367,104 @@ async def verify_payment_signature(
 
     from services.payment_service import verify_payment_and_update_booking
     return verify_payment_and_update_booking(supabase_client, str(current_user.id), payload)
+
+
+# ─── Feature 8: Admin Management Portal Endpoints ──────────────────────────────
+
+from models.vehicle import Vehicle, VehicleCreate, VehicleUpdate
+
+
+@app.get("/admin/vehicles", response_model=list[Vehicle])
+async def admin_list_all_vehicles(
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """
+    [Feature 8 - Part 2: Admin Fleet Management]
+    Protected admin route: returns all scooters in the fleet, including disabled/maintenance models.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.vehicle_service import get_all_vehicles
+    return get_all_vehicles(supabase_client, include_disabled=True)
+
+
+@app.post("/admin/vehicles", response_model=Vehicle)
+async def admin_create_vehicle(
+    vehicle_data: VehicleCreate,
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """
+    [Feature 8 - Part 2: Admin Fleet Management]
+    Protected admin route: creates a new electric scooter model in the catalog.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.vehicle_service import create_vehicle
+    return create_vehicle(supabase_client, vehicle_data)
+
+
+@app.put("/admin/vehicles/{vehicle_id}", response_model=Vehicle)
+async def admin_update_vehicle(
+    vehicle_id: str,
+    vehicle_data: VehicleUpdate,
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """
+    [Feature 8 - Part 2: Admin Fleet Management]
+    Protected admin route: updates specifications or details for an existing vehicle.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.vehicle_service import update_vehicle
+    return update_vehicle(supabase_client, vehicle_id, vehicle_data)
+
+
+@app.patch("/admin/vehicles/{vehicle_id}/toggle-availability", response_model=Vehicle)
+async def admin_toggle_vehicle(
+    vehicle_id: str,
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """
+    [Feature 8 - Part 2: Admin Fleet Management]
+    Protected admin route: toggles vehicle availability between Active and Maintenance mode.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.vehicle_service import toggle_vehicle_availability
+    return toggle_vehicle_availability(supabase_client, vehicle_id)
+
+
+@app.delete("/admin/vehicles/{vehicle_id}")
+async def admin_delete_vehicle(
+    vehicle_id: str,
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """
+    [Feature 8 - Part 2: Admin Fleet Management]
+    Protected admin route: deletes a scooter model from the catalog.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.vehicle_service import delete_vehicle
+    delete_vehicle(supabase_client, vehicle_id)
+    return {"status": "success", "message": f"Vehicle '{vehicle_id}' deleted successfully."}
+
+
+@app.get("/admin/bookings", response_model=list[BookingResponse])
+async def admin_list_all_bookings(
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """
+    [Feature 8 - Part 2: Admin Dashboard Overview]
+    Protected admin route: retrieves all platform-wide user reservations.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.booking_service import get_all_platform_bookings
+    return get_all_platform_bookings(supabase_client)

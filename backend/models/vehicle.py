@@ -1,34 +1,60 @@
-# ─── What this file is ──────────────────────────────────────────────────────
+# ─── Feature 1, 2 & 8: Vehicle Pydantic Models ─────────────────────────────────
 #
-# This is the Pydantic "model" for a single vehicle.
+# What this file is:
+#   Pydantic data models for electric scooters in the catalog.
+#   Provides schema validation for reading, creating, and updating scooters.
 #
-# Pydantic models serve two purposes:
-#   1. VALIDATION — when FastAPI receives data (e.g. from Supabase), it checks
-#      that every required field is present and has the correct type.
-#   2. SERIALIZATION — when FastAPI sends a response to the frontend, it
-#      automatically converts this model to clean JSON.
-#
-# Think of it as a blueprint that describes exactly what one scooter looks like.
+# Schemas:
+#   • Vehicle       -> Complete scooter profile matching Supabase columns.
+#   • VehicleCreate -> Incoming payload when an admin creates a new scooter.
+#   • VehicleUpdate -> Incoming payload when an admin updates an existing scooter.
 #
 # ────────────────────────────────────────────────────────────────────────────
 
-from pydantic import BaseModel   # BaseModel is Pydantic's base class for all models
-from typing import Optional      # Optional means the field can be None (nullable)
-from datetime import datetime    # for the created_at timestamp field
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
 
 
 class Vehicle(BaseModel):
     """
+    [Feature 1 & 2]
     Represents one row from the `vehicles` table in Supabase.
-    Each field name here must match the column name in the database exactly.
     """
+    id:            str
+    name:          str
+    battery_kwh:   float
+    range_km:      int
+    top_speed_kmh: int
+    price_per_day: float
+    image_url:     Optional[str] = None
+    available:     bool = True
+    created_at:    Optional[datetime] = None
 
-    id:            str             # UUID stored as a string (e.g. "abc123-...")
-    name:          str             # e.g. "EWON Pro"
-    battery_kwh:   float           # battery capacity in kilowatt-hours
-    range_km:      int             # maximum range on a full charge, in km
-    top_speed_kmh: int             # top speed in km/h
-    price_per_day: float           # rental price in rupees per day
-    image_url:     Optional[str]   # URL to the scooter image — can be null
-    available:     bool            # True = available to rent, False = not available
-    created_at:    Optional[datetime]  # when the row was inserted — can be null
+
+class VehicleCreate(BaseModel):
+    """
+    [Feature 8 - Part 2]
+    Payload schema when an admin adds a new scooter model to the fleet.
+    """
+    name:          str
+    battery_kwh:   float
+    range_km:      int
+    top_speed_kmh: int
+    price_per_day: float
+    image_url:     Optional[str] = None
+    available:     bool = True
+
+
+class VehicleUpdate(BaseModel):
+    """
+    [Feature 8 - Part 2]
+    Payload schema when an admin updates specifications or status of a scooter.
+    """
+    name:          Optional[str] = None
+    battery_kwh:   Optional[float] = None
+    range_km:      Optional[int] = None
+    top_speed_kmh: Optional[int] = None
+    price_per_day: Optional[float] = None
+    image_url:     Optional[str] = None
+    available:     Optional[bool] = None

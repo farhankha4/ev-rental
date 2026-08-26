@@ -1,4 +1,4 @@
-# ─── Feature 4, 5 & 6: Booking Service Layer ──────────────────────────────────
+# ─── Feature 4, 5, 6 & 8: Booking Service Layer ──────────────────────────────────
 #
 # Contains business logic and database interactions for rentals:
 #   - Validates that the requested scooter exists and is available
@@ -8,6 +8,7 @@
 #   - Computes total cost: duration_days * vehicle.price_per_day
 #   - Creates and inserts the reservation record into Supabase
 #   - [Feature 6] Fetches user-specific booking records with full vehicle details
+#   - [Feature 8] Fetches platform-wide bookings for admin overview
 #
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -241,13 +242,6 @@ def get_user_bookings(supabase_client, user_id: str) -> list[BookingResponse]:
     [Feature 6 - Part 2: My Bookings Dashboard]
     Fetches all booking records belonging to the specified user_id from Supabase,
     ordered by created_at DESC. Joins and populates the vehicle metadata for each booking.
-
-    Args:
-        supabase_client: Active Supabase client instance.
-        user_id: UUID of the authenticated user.
-
-    Returns:
-        list[BookingResponse]: List of validated BookingResponse objects containing vehicle specs.
     """
     try:
         res = (
@@ -284,4 +278,47 @@ def get_user_bookings(supabase_client, user_id: str) -> list[BookingResponse]:
 
     except Exception as exc:
         print(f"[booking_service] Error fetching user bookings: {exc}")
+        return []
+
+
+def get_all_platform_bookings(supabase_client) -> list[BookingResponse]:
+    """
+    [Feature 8 - Part 2: Admin Dashboard Platform Overview]
+    Fetches all reservations across all users from Supabase, ordered by created_at DESC.
+    Populates vehicle metadata for each booking row.
+    """
+    try:
+        res = (
+            supabase_client
+            .table("bookings")
+            .select("*")
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        if not res.data:
+            return []
+
+        bookings = []
+        for row in res.data:
+            vehicle = get_vehicle_by_id(supabase_client, row["vehicle_id"])
+            bookings.append(
+                BookingResponse(
+                    id=str(row["id"]),
+                    user_id=str(row["user_id"]),
+                    vehicle_id=str(row["vehicle_id"]),
+                    pickup_time=row["pickup_time"],
+                    return_time=row["return_time"],
+                    total_amount=float(row["total_amount"]),
+                    booking_status=row.get("booking_status", "reserved"),
+                    payment_status=row.get("payment_status", "pending"),
+                    created_at=row.get("created_at"),
+                    vehicle=vehicle
+                )
+            )
+
+        return bookings
+
+    except Exception as exc:
+        print(f"[booking_service] Error fetching all platform bookings: {exc}")
         return []

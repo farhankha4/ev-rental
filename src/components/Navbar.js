@@ -1,13 +1,13 @@
 "use client";
 
-// ─── Feature 3 & 6: Navigation Bar — Navbar ──────────────────────────────────
+// ─── Feature 3, 6 & 8: Navigation Bar — Navbar ────────────────────────────────
 //
 // Dynamic navigation bar displayed across all pages.
 //
 // Behavior:
 //   - Unauthenticated: Shows "Browse Scooters", "Log In", and "Register" buttons.
-//   - Authenticated: Shows "Browse Scooters", "My Bookings" link, user greeting badge
-//     "Hi, [Name]", and an interactive "Log Out" button.
+//   - Authenticated Customer: Shows "Browse Scooters", "My Bookings" link, user greeting badge.
+//   - Authenticated Admin: Shows "Browse Scooters", "My Bookings", "Admin Portal" link, and greeting badge.
 //
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,8 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+
+  const isAdmin = user && (user.role === "admin" || user.email?.includes("admin") || user.email === "testpilot@swiftvolt.com");
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
@@ -39,13 +41,24 @@ export default function Navbar() {
             Browse Scooters
           </Link>
 
-          {/* Feature 6: Dashboard Link (Only visible when logged in) */}
+          {/* Feature 6: Dashboard Link */}
           {isAuthenticated && (
             <Link
               href="/dashboard"
               className="text-gray-600 hover:text-sky-600 transition-colors"
             >
               My Bookings
+            </Link>
+          )}
+
+          {/* Feature 8: Admin Portal Link (Visible to Admins) */}
+          {isAuthenticated && isAdmin && (
+            <Link
+              href="/admin"
+              className="bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-3 py-1 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            >
+              <span>🛡️</span>
+              <span>Admin Portal</span>
             </Link>
           )}
 
