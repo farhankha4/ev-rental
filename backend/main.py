@@ -1,4 +1,4 @@
-# ─── Feature 0, 1, 2, 3, 4, 5 & 6: FastAPI Backend Server Entrypoint ───────────
+# ─── Feature 0, 1, 2, 3, 4, 5, 6 & 7: FastAPI Backend Server Entrypoint ────────
 #
 # This is the central entrypoint and routing hub for the SwiftVolt FastAPI backend.
 # It handles HTTP requests from the Next.js frontend, connects to the Supabase
@@ -21,6 +21,9 @@
 #       GET  /vehicles/{id}/availability  -> Checks if date range is free from collisions
 #   • Feature 6 (My Bookings Dashboard):
 #       GET  /bookings/my-bookings        -> Protected: Returns all reservations for logged-in user
+#   • Feature 7 (Razorpay Payments):
+#       POST /payments/create-order       -> Protected: Generates Razorpay order ID for checkout
+#       POST /payments/verify             -> Protected: Verifies HMAC signature & confirms payment
 #
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -39,7 +42,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="EV Rental API",
     description="REST API backend for SwiftVolt electric scooter rental platform",
-    version="0.6.0"
+    version="0.7.0"
 )
 
 # ─── 3. CORS (Cross-Origin Resource Sharing) Middleware ───────────────────────
@@ -313,3 +316,47 @@ async def get_booking_details(
         raise HTTPException(status_code=404, detail=f"Booking with ID '{booking_id}' not found.")
 
     return booking
+
+
+# ─── Feature 7: Razorpay Payment Endpoints ────────────────────────────────────
+
+from models.payment import (
+    PaymentOrderCreate,
+    PaymentOrderResponse,
+    PaymentVerify,
+    PaymentVerifyResponse
+)
+
+
+@app.post("/payments/create-order", response_model=PaymentOrderResponse)
+async def generate_payment_order(
+    payload: PaymentOrderCreate,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    [Feature 7 - Part 2: Generate Razorpay Payment Order]
+    Protected route: creates a official Razorpay order ID for the specified booking.
+    Returns: order_id, amount in paise, currency, key_id, booking_id
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.payment_service import create_payment_order
+    return create_payment_order(supabase_client, str(current_user.id), payload.booking_id)
+
+
+@app.post("/payments/verify", response_model=PaymentVerifyResponse)
+async def verify_payment_signature(
+    payload: PaymentVerify,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    [Feature 7 - Part 2: Verify Razorpay Signature & Confirm Booking]
+    Protected route: validates HMAC SHA256 signature from Razorpay Checkout popup modal.
+    Updates database: payment_status -> 'paid', booking_status -> 'confirmed'.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.payment_service import verify_payment_and_update_booking
+    return verify_payment_and_update_booking(supabase_client, str(current_user.id), payload)

@@ -1,31 +1,36 @@
-// ─── Feature 6: Presentational Component — BookingCard ─────────────────────
+"use client";
+
+// ─── Feature 6 & 7: Presentational Component — BookingCard ──────────────────
 //
 // What this file is:
-//   A reusable presentational card component that renders the full details of a single
+//   A presentational card component that renders the full details of a single
 //   scooter reservation card on the `/dashboard` page.
 //
 // Which feature & part:
-//   Feature 6 (My Bookings Dashboard) — Reservation Card UI Component
+//   • Feature 6 (My Bookings Dashboard) — Reservation Card UI Component
+//   • Feature 7 (Razorpay Payments)     — Interactive "Pay Now" Razorpay Checkout Integration
 //
 // Props:
-//   booking -> Object containing reservation details:
-//     {
-//       id, user_id, vehicle_id, pickup_time, return_time, total_amount,
-//       booking_status, payment_status, created_at,
-//       vehicle: { name, range_km, top_speed_kmh, price_per_day, image_url }
-//     }
+//   booking -> Reservation object containing metadata and vehicle specs
+//   onPaymentSuccess -> Callback function executed after Razorpay payment verification succeeds
 //
 // ────────────────────────────────────────────────────────────────────────────
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { useRazorpay } from "@/hooks/useRazorpay";
 
-export default function BookingCard({ booking }) {
+export default function BookingCard({ booking, onPaymentSuccess }) {
+  const { user, token } = useAuth();
+  const { openCheckout } = useRazorpay();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [payError, setPayError] = useState("");
+
   // Extract associated scooter metadata object
   const vehicle = booking.vehicle;
 
   // ─── 1. Format Datetimes for Local Display ──────────────────────────────────
-  // Formats ISO string into e.g. "Thu, 15 Oct 2026, 10:00 AM"
   const pickupFormatted = new Date(booking.pickup_time).toLocaleString("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -50,7 +55,6 @@ export default function BookingCard({ booking }) {
   const diffDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
 
   // ─── 3. Color Badges Mapping ──────────────────────────────────────────────
-  // Assigns soft background and text colors depending on reservation status
   const statusStyles = {
     reserved: "bg-sky-50 text-sky-700 border-sky-200",
     confirmed: "bg-green-50 text-green-700 border-green-200",
@@ -64,8 +68,80 @@ export default function BookingCard({ booking }) {
     refunded: "bg-purple-50 text-purple-700 border-purple-200",
   };
 
+  // ─── 4. Feature 7: Handle Razorpay Online Payment Flow ─────────────────────
+  const handlePayNow = async () => {
+    setPayError("");
+    setIsProcessing(true);
+
+    try {
+      // Step A: Request Razorpay Order ID from backend
+      const res = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ booking_id: booking.id }),
+      });
+
+      const orderData = await res.json();
+      if (!res.ok) {
+        throw new Error(orderData.error || "Could not generate payment order.");
+      }
+
+      // Step B: Launch Razorpay Checkout Popup Modal
+      openCheckout({
+        orderId: orderData.order_id,
+        amount: orderData.amount,
+        keyId: orderData.key_id,
+        scooterName: `SwiftVolt ${vehicle?.name || "Scooter"}`,
+        userEmail: user?.email || "",
+        userName: user?.full_name || "",
+        onSuccess: async (razorResponse) => {
+          // Step C: Verify payment HMAC signature with backend
+          try {
+            const verifyRes = await fetch("/api/payments/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                booking_id: booking.id,
+                razorpay_order_id: razorResponse.razorpay_order_id,
+                razorpay_payment_id: razorResponse.razorpay_payment_id,
+                razorpay_signature: razorResponse.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) {
+              throw new Error(verifyData.error || "Payment verification failed.");
+            }
+
+            // Refresh parent list on success
+            if (onPaymentSuccess) {
+              onPaymentSuccess();
+            }
+          } catch (err) {
+            setPayError(err.message || "Payment verification failed.");
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        onDismiss: () => {
+          setIsProcessing(false);
+        },
+      });
+
+    } catch (err) {
+      setPayError(err.message || "Error initiating payment.");
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow space-y-0">
       
       {/* ── Top Header Bar: Booking ID & Status Badges ─────────────────────── */}
       <div className="bg-gray-50/80 px-6 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
@@ -75,17 +151,25 @@ export default function BookingCard({ booking }) {
         </div>
 
         <div className="flex items-center gap-2 text-xs font-semibold">
-          {/* Booking Status Pill (Reserved / Confirmed / Completed / Cancelled) */}
+          {/* Booking Status Pill */}
           <span className={`px-2.5 py-1 rounded-full border capitalize ${statusStyles[booking.booking_status] || statusStyles.reserved}`}>
             {booking.booking_status}
           </span>
 
-          {/* Payment Status Pill (Pending / Paid / Refunded) */}
+          {/* Payment Status Pill */}
           <span className={`px-2.5 py-1 rounded-full border capitalize ${paymentStyles[booking.payment_status] || paymentStyles.pending}`}>
             Payment: {booking.payment_status}
           </span>
         </div>
       </div>
+
+      {/* Payment Error Alert */}
+      {payError && (
+        <div className="bg-red-50 text-red-700 text-xs px-6 py-2 border-b border-red-100 flex items-center justify-between">
+          <span>⚠️ {payError}</span>
+          <button onClick={() => setPayError("")} className="font-bold underline">Dismiss</button>
+        </div>
+      )}
 
       {/* ── Card Main Body ────────────────────────────────────────────────── */}
       <div className="p-6 flex flex-col md:flex-row gap-6 items-start">
@@ -128,7 +212,7 @@ export default function BookingCard({ booking }) {
           </div>
         </div>
 
-        {/* Total Pricing & View Scooter Link */}
+        {/* Total Pricing & Actions */}
         <div className="w-full md:w-auto border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 flex md:flex-col justify-between md:justify-center items-end gap-3 shrink-0">
           <div className="text-left md:text-right">
             <p className="text-[11px] text-gray-400 font-medium uppercase">
@@ -142,14 +226,35 @@ export default function BookingCard({ booking }) {
             </p>
           </div>
 
-          {vehicle?.id && (
-            <Link
-              href={`/vehicles/${vehicle.id}`}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-            >
-              View Scooter
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Feature 7: Pay Now Button (Only visible if payment_status is pending) */}
+            {booking.payment_status === "pending" && booking.booking_status !== "cancelled" && (
+              <button
+                type="button"
+                onClick={handlePayNow}
+                disabled={isProcessing}
+                className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isProcessing ? (
+                  <span>Processing...</span>
+                ) : (
+                  <>
+                    <span>💳</span>
+                    <span>Pay Now</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {vehicle?.id && (
+              <Link
+                href={`/vehicles/${vehicle.id}`}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
+              >
+                View Scooter
+              </Link>
+            )}
+          </div>
         </div>
 
       </div>

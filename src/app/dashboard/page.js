@@ -1,6 +1,6 @@
 "use client";
 
-// ─── Feature 6: User Dashboard Page — /dashboard ───────────────────────────
+// ─── Feature 6 & 7: User Dashboard Page — /dashboard ─────────────────────────
 //
 // What this file is:
 //   This is the client-side page rendered when a user navigates to `/dashboard`.
@@ -10,7 +10,8 @@
 //     2. "Past & Completed"          -> Completed, expired, or cancelled reservations
 //
 // Which feature & part:
-//   Feature 6 (My Bookings Dashboard) — Frontend Page Component
+//   • Feature 6 (My Bookings Dashboard) — Frontend Page Component
+//   • Feature 7 (Razorpay Payments)     — Triggers list refetch after payment verification
 //
 // How it works:
 //   • Uses `useAuth()` to check if the user is authenticated.
@@ -187,7 +188,11 @@ export default function DashboardPage() {
           {currentList.length > 0 ? (
             <div className="space-y-4">
               {currentList.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
+                <BookingCard
+                  key={booking.id}
+                  booking={booking}
+                  onPaymentSuccess={() => refetch()}
+                />
               ))}
             </div>
           ) : (
