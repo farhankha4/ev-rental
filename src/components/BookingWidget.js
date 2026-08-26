@@ -131,6 +131,12 @@ export default function BookingWidget({ vehicle }) {
           Your SwiftVolt {vehicle.name} has been reserved successfully.
         </p>
 
+        {/* Feature 10: Email Notification Confirmation Notice */}
+        <div className="bg-sky-50 text-sky-800 text-[11px] font-medium p-2.5 rounded-xl border border-sky-100 flex items-center justify-center gap-1.5">
+          <span>📧</span>
+          <span>Confirmation email sent to your inbox!</span>
+        </div>
+
         <div className="bg-gray-50 rounded-2xl p-4 text-left text-xs space-y-2.5 border border-gray-100">
           <div className="flex justify-between">
             <span className="text-gray-500">Booking ID:</span>

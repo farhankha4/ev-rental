@@ -1,4 +1,4 @@
-# ─── Feature 0, 1, 2, 3, 4, 5, 6, 7, 8 & 9: FastAPI Backend Server Entrypoint ───
+# ─── Feature 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 & 10: FastAPI Backend Server Entrypoint
 #
 # This is the central entrypoint and routing hub for the SwiftVolt FastAPI backend.
 # It handles HTTP requests from the Next.js frontend, connects to the Supabase
@@ -34,13 +34,15 @@
 #   • Feature 9 (Reviews & Ratings):
 #       GET  /vehicles/{id}/reviews       -> Public: Returns rating summary & customer review cards
 #       POST /vehicles/{id}/reviews       -> Protected: Submits a 1-5 star review and comment
+#   • Feature 10 (Email Notifications):
+#       Integrates FastAPI BackgroundTasks in /bookings & /payments/verify for automated emails
 #
 # ────────────────────────────────────────────────────────────────────────────
 
 import os
 from datetime import datetime
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -52,7 +54,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="EV Rental API",
     description="REST API backend for SwiftVolt electric scooter rental platform",
-    version="0.9.0"
+    version="0.10.0"
 )
 
 # ─── 3. CORS (Cross-Origin Resource Sharing) Middleware ───────────────────────
@@ -265,7 +267,7 @@ async def get_my_profile(current_user: UserResponse = Depends(get_current_user))
     return current_user
 
 
-# ─── Feature 4, 5 & 6: Reservation Endpoints ──────────────────────────────────
+# ─── Feature 4, 5, 6 & 10: Reservation Endpoints ──────────────────────────────
 
 from models.booking import BookingCreate, BookingResponse
 
@@ -273,21 +275,35 @@ from models.booking import BookingCreate, BookingResponse
 @app.post("/bookings", response_model=BookingResponse)
 async def create_new_booking(
     booking_data: BookingCreate,
+    background_tasks: BackgroundTasks,
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
-    [Feature 4 & 5 - Part 2: Create Reservation with Overlap Check]
+    [Feature 4, 5 & 10 - Part 2: Create Reservation with Conflict Check & Email Dispatch]
     Protected route: creates a new scooter reservation for the logged-in user.
     1. Checks for scheduling conflicts (Feature 5).
     2. Computes rental duration in days (math.ceil).
     3. Calculates total cost = days * vehicle.price_per_day.
     4. Inserts the booking row into Supabase.
+    5. Dispatches an asynchronous booking confirmation email via BackgroundTasks (Feature 10).
     """
     if supabase_client is None:
         raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
 
     from services.booking_service import create_booking
-    return create_booking(supabase_client, str(current_user.id), booking_data)
+    from services.email_service import send_booking_confirmation_email
+
+    booking = create_booking(supabase_client, str(current_user.id), booking_data)
+
+    # Feature 10: Dispatch asynchronous booking confirmation email
+    background_tasks.add_task(
+        send_booking_confirmation_email,
+        user_email=current_user.email,
+        user_name=current_user.full_name,
+        booking=booking.model_dump()
+    )
+
+    return booking
 
 
 @app.get("/bookings/my-bookings", response_model=list[BookingResponse])
@@ -328,7 +344,7 @@ async def get_booking_details(
     return booking
 
 
-# ─── Feature 7: Razorpay Payment Endpoints ────────────────────────────────────
+# ─── Feature 7 & 10: Razorpay Payment Endpoints ───────────────────────────────
 
 from models.payment import (
     PaymentOrderCreate,
@@ -358,18 +374,36 @@ async def generate_payment_order(
 @app.post("/payments/verify", response_model=PaymentVerifyResponse)
 async def verify_payment_signature(
     payload: PaymentVerify,
+    background_tasks: BackgroundTasks,
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
-    [Feature 7 - Part 2: Verify Razorpay Signature & Confirm Booking]
+    [Feature 7 & 10 - Part 2: Verify Razorpay Signature & Send Payment Receipt]
     Protected route: validates HMAC SHA256 signature from Razorpay Checkout popup modal.
     Updates database: payment_status -> 'paid', booking_status -> 'confirmed'.
+    Dispatches an asynchronous payment receipt email via BackgroundTasks (Feature 10).
     """
     if supabase_client is None:
         raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
 
     from services.payment_service import verify_payment_and_update_booking
-    return verify_payment_and_update_booking(supabase_client, str(current_user.id), payload)
+    from services.booking_service import get_booking_by_id
+    from services.email_service import send_payment_receipt_email
+
+    res = verify_payment_and_update_booking(supabase_client, str(current_user.id), payload)
+
+    # Feature 10: Dispatch asynchronous payment receipt email
+    booking = get_booking_by_id(supabase_client, payload.booking_id, str(current_user.id))
+    if booking:
+        background_tasks.add_task(
+            send_payment_receipt_email,
+            user_email=current_user.email,
+            user_name=current_user.full_name,
+            booking=booking.model_dump(),
+            payment_id=payload.razorpay_payment_id
+        )
+
+    return res
 
 
 # ─── Feature 8: Admin Management Portal Endpoints ──────────────────────────────

@@ -123,6 +123,7 @@ export default function BookingCard({ booking, onPaymentSuccess }) {
             if (onPaymentSuccess) {
               onPaymentSuccess();
             }
+            alert("💳 Payment successful! A receipt email has been sent to your inbox.");
           } catch (err) {
             setPayError(err.message || "Payment verification failed.");
           } finally {
