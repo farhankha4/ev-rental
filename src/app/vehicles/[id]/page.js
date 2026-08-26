@@ -1,12 +1,13 @@
 "use client";
 
-// ─── Feature 2 & 4: Dynamic Page — /vehicles/[id] ──────────────────────────
+// ─── Feature 2, 4 & 9: Dynamic Page — /vehicles/[id] ──────────────────────────
 //
-// Scooter Detail Page with embedded real-time Booking Widget.
+// Scooter Detail Page with embedded real-time Booking Widget and Customer Reviews.
 //
 // Features:
 //   - Feature 2: Gallery, Specs, Narrative Description, Included Benefits
 //   - Feature 4: Interactive BookingWidget for date selection & real reservations
+//   - Feature 9: VehicleReviews for customer ratings, star breakdowns, and reviews
 //
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ import VehicleSpecs from "@/components/VehicleSpecs";
 import VehicleFeatures from "@/components/VehicleFeatures";
 import VehicleDescription from "@/components/VehicleDescription";
 import BookingWidget from "@/components/BookingWidget";
+import VehicleReviews from "@/components/VehicleReviews";
 
 export default function VehicleDetailPage() {
   const params = useParams();
@@ -112,11 +114,14 @@ export default function VehicleDetailPage() {
         {/* ── Main Two-Column Layout ────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-          {/* Left / Center Column (2 cols wide): Gallery & Narrative */}
+          {/* Left / Center Column (2 cols wide): Gallery, Narrative & Feature 9 Reviews */}
           <div className="lg:col-span-2 space-y-6">
             <VehicleGallery vehicle={vehicle} />
             <VehicleDescription vehicle={vehicle} />
             <VehicleFeatures />
+            
+            {/* Feature 9: Customer Reviews & Ratings */}
+            <VehicleReviews vehicleId={vehicle.id} />
           </div>
 
           {/* Right Column (1 col wide): Specs & Feature 4 Booking Widget */}

@@ -1,4 +1,4 @@
-# ─── Feature 0, 1, 2, 3, 4, 5, 6, 7 & 8: FastAPI Backend Server Entrypoint ─────
+# ─── Feature 0, 1, 2, 3, 4, 5, 6, 7, 8 & 9: FastAPI Backend Server Entrypoint ───
 #
 # This is the central entrypoint and routing hub for the SwiftVolt FastAPI backend.
 # It handles HTTP requests from the Next.js frontend, connects to the Supabase
@@ -31,6 +31,9 @@
 #       PATCH /admin/vehicles/{id}/toggle-availability -> Admin: Toggles maintenance status
 #       DELETE /admin/vehicles/{id}       -> Admin: Removes scooter from catalog
 #       GET  /admin/bookings              -> Admin: Retrieves all platform user bookings
+#   • Feature 9 (Reviews & Ratings):
+#       GET  /vehicles/{id}/reviews       -> Public: Returns rating summary & customer review cards
+#       POST /vehicles/{id}/reviews       -> Protected: Submits a 1-5 star review and comment
 #
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -49,7 +52,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="EV Rental API",
     description="REST API backend for SwiftVolt electric scooter rental platform",
-    version="0.8.0"
+    version="0.9.0"
 )
 
 # ─── 3. CORS (Cross-Origin Resource Sharing) Middleware ───────────────────────
@@ -468,3 +471,38 @@ async def admin_list_all_bookings(
 
     from services.booking_service import get_all_platform_bookings
     return get_all_platform_bookings(supabase_client)
+
+
+# ─── Feature 9: Reviews & Ratings Endpoints ────────────────────────────────────
+
+from models.review import ReviewCreate, ReviewResponse, VehicleReviewSummary
+
+
+@app.get("/vehicles/{vehicle_id}/reviews", response_model=VehicleReviewSummary)
+async def list_vehicle_reviews(vehicle_id: str):
+    """
+    [Feature 9 - Part 2: Customer Reviews & Ratings]
+    Public route: retrieves all customer ratings, average score, and reviews for a scooter.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.review_service import get_vehicle_reviews
+    return get_vehicle_reviews(supabase_client, vehicle_id)
+
+
+@app.post("/vehicles/{vehicle_id}/reviews", response_model=ReviewResponse)
+async def submit_vehicle_review(
+    vehicle_id: str,
+    review_data: ReviewCreate,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    [Feature 9 - Part 2: Submit Customer Review]
+    Protected route: allows an authenticated user to submit a 1-5 star rating and comment.
+    """
+    if supabase_client is None:
+        raise HTTPException(status_code=503, detail=db_init_error or "Database is offline.")
+
+    from services.review_service import create_review
+    return create_review(supabase_client, str(current_user.id), vehicle_id, review_data)
