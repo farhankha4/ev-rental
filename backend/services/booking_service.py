@@ -138,7 +138,7 @@ def create_booking(supabase_client, user_id: str, booking_data: BookingCreate) -
         raise HTTPException(
             status_code=400,
             detail=(
-                f"SwiftVolt {vehicle.name} is already reserved for the selected dates. "
+                f"Evora {vehicle.name} is already reserved for the selected dates. "
                 "Please choose different dates or select another model."
             )
         )

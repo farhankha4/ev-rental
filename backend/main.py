@@ -52,9 +52,9 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # ─── 2. FastAPI Application Initialization ───────────────────────────────────
 app = FastAPI(
-    title="EV Rental API",
-    description="REST API backend for SwiftVolt electric scooter rental platform",
-    version="0.10.0"
+    title="Evora EV Rental Platform API",
+    description="REST API backend for Evora electric scooter rental platform",
+    version="1.0.0"
 )
 
 # ─── 3. CORS (Cross-Origin Resource Sharing) Middleware ───────────────────────

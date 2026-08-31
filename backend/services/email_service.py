@@ -30,7 +30,7 @@ def _get_smtp_credentials():
         "port": int(os.getenv("SMTP_PORT", "587")),
         "user": os.getenv("SMTP_USER", ""),
         "password": os.getenv("SMTP_PASSWORD", ""),
-        "sender": os.getenv("SENDER_EMAIL", "notifications@swiftvolt.com"),
+        "sender": os.getenv("SENDER_EMAIL", "notifications@evora.com"),
     }
 
 

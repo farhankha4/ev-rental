@@ -227,7 +227,7 @@ export default function AdminDashboardPage() {
                               <div className="w-full h-full flex items-center justify-center font-black">EV</div>
                             )}
                           </div>
-                          <span>Evora {v.name}</span>
+                          <span>{v.name}</span>
                         </td>
                         <td className="px-4 py-4 font-medium">
                           {v.battery_kwh} kWh • {v.range_km} km
@@ -248,23 +248,27 @@ export default function AdminDashboardPage() {
                         <td className="px-6 py-4 text-right space-x-2">
                           <button
                             onClick={() => handleToggleStatus(v.id)}
-                            className="bg-gray-100 hover:bg-gray-200 text-[#004643] font-bold px-3 py-1.5 rounded-xl text-[11px]"
+                            className="bg-gray-100 hover:bg-gray-200 text-[#004643] font-bold px-3 py-1.5 rounded-xl text-[11px] transition-colors"
                           >
                             {v.available ? "Disable" : "Enable"}
                           </button>
 
                           <button
                             onClick={() => handleOpenEdit(v)}
-                            className="bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold px-3 py-1.5 rounded-xl text-[11px]"
+                            className="bg-sky-100 hover:bg-sky-200 text-sky-900 font-extrabold px-3 py-1.5 rounded-xl text-[11px] transition-colors"
                           >
                             Edit
                           </button>
 
                           <button
                             onClick={() => handleDelete(v.id, v.name)}
-                            className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-3 py-1.5 rounded-xl text-[11px]"
+                            className="bg-rose-100 hover:bg-rose-600 hover:text-white text-rose-700 font-black px-3.5 py-1.5 rounded-xl text-[11px] transition-all inline-flex items-center gap-1 shadow-xs"
+                            title="Remove scooter from catalog"
                           >
-                            Delete
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            <span>Delete</span>
                           </button>
                         </td>
                       </tr>
@@ -297,7 +301,7 @@ export default function AdminDashboardPage() {
                           {b.id.slice(0, 8)}...
                         </td>
                         <td className="px-4 py-4 font-black text-[#004643]">
-                          Evora {b.vehicle?.name || "Scooter"}
+                          {b.vehicle?.name || "Scooter"}
                         </td>
                         <td className="px-4 py-4 text-[11px] font-medium">
                           {new Date(b.pickup_time).toLocaleDateString()} → {new Date(b.return_time).toLocaleDateString()}
@@ -429,14 +433,33 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              <div className="pt-3 flex gap-3">
+              <div className="pt-3 flex flex-wrap gap-3">
+                {editingVehicle && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const vId = editingVehicle.id;
+                      const vName = editingVehicle.name;
+                      setShowAddModal(false);
+                      setEditingVehicle(null);
+                      handleDelete(vId, vName);
+                    }}
+                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>Delete Scooter</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
                     setEditingVehicle(null);
                   }}
-                  className="w-1/2 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50"
+                  className="flex-1 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 text-xs"
                 >
                   Cancel
                 </button>
@@ -444,7 +467,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-1/2 py-3 rounded-xl bg-[#004643] text-[#F0EDE5] font-black hover:bg-[#003633] shadow-md"
+                  className="flex-1 py-3 rounded-xl bg-[#004643] text-[#F0EDE5] font-black hover:bg-[#003633] shadow-md text-xs"
                 >
                   {isSubmitting ? "Saving..." : editingVehicle ? "Update Model" : "Create Scooter"}
                 </button>

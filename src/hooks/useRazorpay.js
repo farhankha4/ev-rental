@@ -51,23 +51,23 @@ export function useRazorpay() {
     orderId,
     amount,
     keyId,
-    scooterName = "SwiftVolt Electric Scooter",
+    scooterName = "Evora Electric Scooter",
     userEmail = "",
     userName = "",
     onSuccess,
-    onDismiss
+    onDismiss,
   }) => {
     if (!window.Razorpay) {
-      alert("Razorpay SDK is loading... Please try again in a moment.");
+      alert("Razorpay SDK failed to load. Please check your internet connection.");
       return;
     }
 
     const options = {
-      key: keyId,
-      amount: amount, // in paise (e.g. 150000 = ₹1500)
+      key: keyId || "rzp_test_SwiftVolt2026Key",
+      amount: amount, // Amount in paise
       currency: "INR",
-      name: "SwiftVolt EV Rentals",
-      description: `Rental Payment for ${scooterName}`,
+      name: "Evora EV Rentals",
+      description: `Rental reservation for ${scooterName}`,
       image: "https://cdn-icons-png.flaticon.com/512/2972/2972531.png", // EV Scooter icon
       order_id: orderId,
       prefill: {

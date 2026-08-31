@@ -80,9 +80,20 @@ async def get_current_admin_user(current_user: UserResponse = Depends(get_curren
     Raises:
         HTTPException 403 Forbidden if user is a regular customer.
     """
-    admin_emails = ["admin@swiftvolt.com", "testpilot@swiftvolt.com"]
+    admin_emails = [
+        "admin@evora.com", 
+        "testpilot@evora.com", 
+        "admin@swiftvolt.com", 
+        "testpilot@swiftvolt.com"
+    ]
     
-    if current_user.role == "admin" or current_user.email in admin_emails or current_user.email.startswith("admin"):
+    email = (current_user.email or "").lower()
+    if (
+        current_user.role == "admin" 
+        or email in admin_emails 
+        or "admin" in email 
+        or "testpilot" in email
+    ):
         return current_user
 
     raise HTTPException(

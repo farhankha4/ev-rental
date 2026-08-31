@@ -128,7 +128,7 @@ export default function BookingWidget({ vehicle }) {
         </div>
         <h2 className="text-xl font-extrabold text-gray-900">Reservation Confirmed!</h2>
         <p className="text-xs text-gray-500">
-          Your SwiftVolt {vehicle.name} has been reserved successfully.
+          Your Evora {vehicle.name} has been reserved successfully.
         </p>
 
         {/* Feature 10: Email Notification Confirmation Notice */}

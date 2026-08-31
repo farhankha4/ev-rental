@@ -128,7 +128,7 @@ export default async function HomePage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-white">Evora Escout Pro</h4>
+                      <h4 className="font-bold text-sm text-white">Escout Pro</h4>
                       <p className="text-[11px] text-[#F0EDE5]/70">140 km Range | 95 km/h</p>
                     </div>
                   </div>
@@ -147,7 +147,7 @@ export default async function HomePage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-white">Evora MCFLY</h4>
+                      <h4 className="font-bold text-sm text-white">MCFLY</h4>
                       <p className="text-[11px] text-[#F0EDE5]/70">160 km Range | 110 km/h</p>
                     </div>
                   </div>
@@ -282,7 +282,7 @@ export default async function HomePage() {
                       <div className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="text-xl font-black text-[#004643] dark:text-white">
-                            Evora {scooter.name}
+                            {scooter.name}
                           </h3>
                           <span className="text-[10px] font-black uppercase tracking-wider bg-[#004643]/10 dark:bg-emerald-500/20 text-[#004643] dark:text-emerald-400 px-2.5 py-1 rounded-full">
                             Available
@@ -481,7 +481,7 @@ export default async function HomePage() {
                   ))}
                 </div>
                 <p className="text-xs text-gray-700 dark:text-gray-300 italic font-medium leading-relaxed">
-                  "Rented the SwiftVolt Escout Pro for delivery shifts. Zero maintenance issues, battery range is unbelievable, and Razorpay checkout was super fast!"
+                  "Rented the Evora Escout Pro for delivery shifts. Zero maintenance issues, battery range is unbelievable, and Razorpay checkout was super fast!"
                 </p>
                 <div className="pt-2 border-t border-[#004643]/10 dark:border-emerald-500/20 flex items-center justify-between">
                   <span className="text-xs font-bold text-[#004643] dark:text-white">Aarav Mehta</span>

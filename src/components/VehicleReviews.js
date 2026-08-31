@@ -74,7 +74,7 @@ export default function VehicleReviews({ vehicleId }) {
             Customer Reviews & Ratings
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            Real feedback from verified SwiftVolt electric scooter riders.
+            Real feedback from verified Evora electric scooter riders.
           </p>
         </div>
 

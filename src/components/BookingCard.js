@@ -94,7 +94,7 @@ export default function BookingCard({ booking, onPaymentSuccess }) {
         orderId: orderData.order_id,
         amount: orderData.amount,
         keyId: orderData.key_id,
-        scooterName: `SwiftVolt ${vehicle?.name || "Scooter"}`,
+        scooterName: `Evora ${vehicle?.name || "Scooter"}`,
         userEmail: user?.email || "",
         userName: user?.full_name || "",
         onSuccess: async (razorResponse) => {
@@ -193,7 +193,7 @@ export default function BookingCard({ booking, onPaymentSuccess }) {
         <div className="flex-1 space-y-4 w-full">
           <div>
             <h3 className="text-xl font-extrabold text-gray-900">
-              SwiftVolt {vehicle?.name || "Electric Scooter"}
+              Evora {vehicle?.name || "Electric Scooter"}
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
               Range: {vehicle?.range_km ?? "—"} km • Top Speed: {vehicle?.top_speed_kmh ?? "—"} km/h

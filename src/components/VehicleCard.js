@@ -20,6 +20,9 @@ export default function VehicleCard({ vehicle }) {
         <img
           src={vehicle.image_url || defaultImage}
           alt={vehicle.name}
+          onError={(e) => {
+            e.currentTarget.src = defaultImage;
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-3 right-3 bg-[#004643] dark:bg-emerald-600 text-[#F0EDE5] dark:text-white font-black text-xs px-3.5 py-1.5 rounded-full shadow-md">
@@ -32,7 +35,7 @@ export default function VehicleCard({ vehicle }) {
 
         <Link href={`/vehicles/${vehicle.id}`}>
           <h3 className="text-xl font-black text-[#004643] dark:text-white hover:underline">
-            Evora {vehicle.name}
+            {vehicle.name}
           </h3>
         </Link>
 

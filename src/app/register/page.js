@@ -75,7 +75,7 @@ export default function RegisterPage() {
           </div>
           <h1 className="text-2xl font-black text-[#004643]">Create Account</h1>
           <p className="text-xs text-gray-600 font-medium">
-            Sign up to reserve and ride SwiftVolt electric scooters.
+            Sign up to reserve and ride Evora electric scooters.
           </p>
         </div>
 

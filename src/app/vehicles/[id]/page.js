@@ -88,7 +88,7 @@ export default function VehicleDetailPage() {
               Evora EV
             </div>
             <h1 className="text-3xl font-black text-[#004643] dark:text-white">
-              Evora {vehicle.name}
+              {vehicle.name}
             </h1>
             <p className="text-xs text-gray-600 dark:text-gray-300 font-medium mt-1">
               Urban Electric Scooter • Zero Emissions • High Performance
