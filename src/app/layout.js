@@ -30,7 +30,7 @@ const geist = Geist({
 // Next.js automatically injects these into the HTML <head> for SEO and tab titles.
 // Individual pages (like /vehicles) can override these with their own metadata export.
 export const metadata = {
-  title: "EV Rental — SwiftVolt Electric Scooters",
+  title: "EV Rental — Evora Electric Scooters",
   description: "Rent premium electric scooters with zero emissions and instant battery swap technology.",
 };
 

@@ -1,50 +1,36 @@
-// ─── What this file is ──────────────────────────────────────────────────────
-//
-// This is the /vehicles page — what users see at localhost:3000/vehicles
-//
-// It is a Server Component (no "use client" needed) — it just renders
-// the page shell (heading, description) and drops in the VehicleGrid.
-//
-// VehicleGrid is a Client Component that handles all the data fetching
-// and different states (loading/error/success) on its own.
-//
-// This separation is intentional:
-//   - Server Component = fast, SEO-friendly page shell
-//   - Client Component = interactive, data-fetching grid
+// ─── Scooter Catalog Page — /vehicles ───────────────────────────────────────
+// Supports Light & Dark Theme.
 //
 // ────────────────────────────────────────────────────────────────────────────
 
 import VehicleGrid from "@/components/VehicleGrid";
 
-// Metadata for this specific page (overrides the default in layout.js)
 export const metadata = {
-  title: "Browse Scooters — EV Rental",
-  description: "Browse all available SwiftVolt electric scooters for rent.",
+  title: "Electric Fleet Catalog — Evora EV Rentals",
+  description: "Browse all available Evora electric scooters for rent.",
 };
 
 export default function VehiclesPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F0EDE5] dark:bg-[#021B19] text-[#004643] dark:text-[#F0EDE5] transition-colors duration-300">
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          <h1 className="text-3xl font-bold text-gray-900">
-            ⚡ Browse Scooters
+      <div className="bg-[#004643] dark:bg-[#002A28] text-[#F0EDE5] border-b border-white/10 dark:border-emerald-500/20 shadow-md">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-2">
+          <div className="inline-flex items-center gap-2 bg-[#F0EDE5] dark:bg-emerald-400 text-[#004643] dark:text-[#002A28] text-[10px] font-black uppercase px-3 py-1 rounded-full">
+            Available Fleet
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-black text-white">
+            Electric Scooter Fleet
           </h1>
-          <p className="mt-2 text-gray-500">
-            All available SwiftVolt electric scooters — pick your ride.
+          <p className="text-[#F0EDE5]/80 text-sm max-w-xl font-medium">
+            Explore our high-performance electric vehicles. Daily & monthly rental plans with zero security deposit.
           </p>
         </div>
       </div>
 
       {/* ── Vehicle Grid ─────────────────────────────────────────────────── */}
-      {/*
-        VehicleGrid is a Client Component.
-        It fetches the vehicle list from /api/vehicles using TanStack Query
-        and renders the cards (or loading/error states) automatically.
-      */}
-      <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <VehicleGrid />
       </div>
 

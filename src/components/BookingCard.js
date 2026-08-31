@@ -216,13 +216,13 @@ export default function BookingCard({ booking, onPaymentSuccess }) {
         {/* Total Pricing & Actions */}
         <div className="w-full md:w-auto border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 flex md:flex-col justify-between md:justify-center items-end gap-3 shrink-0">
           <div className="text-left md:text-right">
-            <p className="text-[11px] text-gray-400 font-medium uppercase">
+            <p className="text-[11px] text-gray-500 font-bold uppercase">
               {diffDays} {diffDays === 1 ? "day" : "days"} rental
             </p>
-            <p className="text-2xl font-black text-sky-600">
+            <p className="text-2xl font-black text-[#004643]">
               ₹{Number(booking.total_amount).toLocaleString("en-IN")}
             </p>
-            <p className="text-[10px] text-gray-400">
+            <p className="text-[10px] text-gray-500 font-medium">
               ₹{Number(vehicle?.price_per_day || 0).toLocaleString("en-IN")} / day
             </p>
           </div>
@@ -234,15 +234,12 @@ export default function BookingCard({ booking, onPaymentSuccess }) {
                 type="button"
                 onClick={handlePayNow}
                 disabled={isProcessing}
-                className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                className="bg-[#004643] hover:bg-[#003633] text-[#F0EDE5] text-xs font-black px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
               >
                 {isProcessing ? (
                   <span>Processing...</span>
                 ) : (
-                  <>
-                    <span>💳</span>
-                    <span>Pay Now</span>
-                  </>
+                  <span>Pay Now via Razorpay</span>
                 )}
               </button>
             )}

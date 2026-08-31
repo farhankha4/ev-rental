@@ -1,23 +1,6 @@
 "use client";
 
-// ─── Feature 6 & 7: User Dashboard Page — /dashboard ─────────────────────────
-//
-// What this file is:
-//   This is the client-side page rendered when a user navigates to `/dashboard`.
-//   It displays the logged-in user's personal electric scooter reservation history,
-//   categorized cleanly into two interactive tabs:
-//     1. "Upcoming & Active Rentals" -> Reserved scooters with future or ongoing return dates
-//     2. "Past & Completed"          -> Completed, expired, or cancelled reservations
-//
-// Which feature & part:
-//   • Feature 6 (My Bookings Dashboard) — Frontend Page Component
-//   • Feature 7 (Razorpay Payments)     — Triggers list refetch after payment verification
-//
-// How it works:
-//   • Uses `useAuth()` to check if the user is authenticated.
-//   • Uses `useMyBookings()` custom TanStack Query hook to fetch real-time booking records.
-//   • Uses React `useMemo` to sort reservations into `upcomingBookings` and `pastBookings`.
-//   • Handles 4 states: Auth Loading, Guest Access Warning, Error State, and Populated List / Empty State.
+// ─── User Dashboard Page — /dashboard — Light & Dark Theme ──────────────────
 //
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -28,32 +11,20 @@ import { useMyBookings } from "@/hooks/useMyBookings";
 import BookingCard from "@/components/BookingCard";
 
 export default function DashboardPage() {
-  // ─── 1. Auth & Data Hooks ──────────────────────────────────────────────────
-  // Obtain active user session from AuthContext
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-
-  // Obtain user's bookings array and status from custom TanStack Query hook
   const { bookings, isLoading: bookingsLoading, isError, errorMessage, refetch } = useMyBookings();
-
-  // Active UI tab state: 'upcoming' or 'past'
   const [activeTab, setActiveTab] = useState("upcoming");
 
-  // ─── 2. Categorize Bookings into Upcoming vs Past (useMemo for performance) ─
-  // Re-evaluates only when `bookings` array changes.
   const { upcomingBookings, pastBookings } = useMemo(() => {
     const now = new Date();
-
     const upcoming = [];
     const past = [];
 
     bookings.forEach((booking) => {
       const returnDate = new Date(booking.return_time);
-
-      // Bookings that are cancelled, completed, or whose return date has passed belong to 'past'
       if (booking.booking_status === "cancelled" || booking.booking_status === "completed" || returnDate < now) {
         past.push(booking);
       } else {
-        // Active or future reservations belong to 'upcoming'
         upcoming.push(booking);
       }
     });
@@ -61,38 +32,32 @@ export default function DashboardPage() {
     return { upcomingBookings: upcoming, pastBookings: past };
   }, [bookings]);
 
-  // ─── 3. State 1: Auth or Data Loading Skeleton ─────────────────────────────
   if (authLoading || bookingsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="min-h-screen bg-[#F0EDE5] dark:bg-[#021B19] py-10 px-4">
         <div className="max-w-5xl mx-auto space-y-6 animate-pulse">
-          {/* Skeleton Title Bar */}
-          <div className="h-10 w-48 bg-gray-200 rounded-xl" />
-          {/* Skeleton Tabs Bar */}
-          <div className="h-12 w-64 bg-gray-200 rounded-xl" />
-          {/* Skeleton Cards List */}
+          <div className="h-10 w-48 bg-white/40 dark:bg-white/10 rounded-xl" />
+          <div className="h-12 w-64 bg-white/40 dark:bg-white/10 rounded-xl" />
           <div className="space-y-4">
-            <div className="h-44 bg-gray-200 rounded-3xl" />
-            <div className="h-44 bg-gray-200 rounded-3xl" />
+            <div className="h-44 bg-white/40 dark:bg-white/10 rounded-3xl" />
+            <div className="h-44 bg-white/40 dark:bg-white/10 rounded-3xl" />
           </div>
         </div>
       </div>
     );
   }
 
-  // ─── 4. State 2: Auth Guard for Unauthenticated Guests ────────────────────
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-[80vh] bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm text-center max-w-md w-full space-y-4">
-          <div className="text-5xl">🔐</div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Login Required</h1>
-          <p className="text-xs text-gray-500">
-            Please log in to your SwiftVolt account to view your rental dashboard and active bookings.
+      <div className="min-h-[80vh] bg-[#F0EDE5] dark:bg-[#021B19] flex items-center justify-center px-4">
+        <div className="bg-white dark:bg-[#002A28] p-8 rounded-3xl border border-[#004643]/20 dark:border-emerald-500/20 shadow-xl text-center max-w-md w-full space-y-4">
+          <h1 className="text-2xl font-black text-[#004643] dark:text-white">Login Required</h1>
+          <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+            Please log in to your Evora account to view your rental dashboard and active bookings.
           </p>
           <Link
             href="/login"
-            className="inline-block bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors text-sm"
+            className="inline-block bg-[#004643] dark:bg-emerald-600 hover:bg-[#003633] text-[#F0EDE5] dark:text-white font-black px-6 py-3 rounded-2xl transition-colors text-xs shadow-md"
           >
             Log In Now
           </Link>
@@ -101,90 +66,89 @@ export default function DashboardPage() {
     );
   }
 
-  // Select current active list based on active tab state
   const currentList = activeTab === "upcoming" ? upcomingBookings : pastBookings;
 
-  // ─── 5. State 3 & 4: Main Populated Dashboard View ────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-[#F0EDE5] dark:bg-[#021B19] text-[#004643] dark:text-[#F0EDE5] py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-5xl mx-auto space-y-8">
 
-        {/* ── Dashboard Top Header & User Welcome ─────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-[#002A28] p-6 sm:p-8 rounded-3xl border border-[#004643]/15 dark:border-emerald-500/20 shadow-sm">
           <div>
-            <h1 className="text-3xl font-black text-gray-900">
+            <div className="inline-flex items-center gap-2 bg-[#004643]/10 dark:bg-emerald-500/20 text-[#004643] dark:text-emerald-400 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full mb-1">
+              Customer Portal
+            </div>
+            <h1 className="text-3xl font-black text-[#004643] dark:text-white">
               My Rental Dashboard
             </h1>
-            <p className="text-xs text-gray-500 mt-1">
-              Welcome back, <strong className="text-gray-800">{user.full_name}</strong> ({user.email})
+            <p className="text-xs text-gray-600 dark:text-gray-300 font-medium mt-1">
+              Welcome back, <strong className="text-[#004643] dark:text-emerald-400">{user.full_name}</strong> ({user.email})
             </p>
           </div>
 
           <Link
             href="/vehicles"
-            className="inline-flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors"
+            className="inline-flex items-center justify-center gap-2 bg-[#004643] dark:bg-emerald-600 hover:bg-[#003633] text-[#F0EDE5] dark:text-white font-black text-xs px-5 py-3 rounded-2xl shadow-md transition-all"
           >
-            <span>⚡ Rent Another Scooter</span>
+            <span>Rent Another Scooter</span>
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
           </Link>
         </div>
 
-        {/* ── Error Banner ─────────────────────────────────────────────────── */}
+        {/* Error Alert */}
         {isError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-4 rounded-2xl flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span>⚠️</span>
-              <span>{errorMessage || "Could not load bookings."}</span>
-            </div>
+          <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs p-4 rounded-2xl flex items-center justify-between font-bold">
+            <span>{errorMessage || "Could not load bookings."}</span>
             <button
               onClick={() => refetch()}
-              className="text-xs font-bold underline hover:text-red-900"
+              className="text-xs underline hover:text-rose-950 dark:hover:text-white"
             >
               Retry
             </button>
           </div>
         )}
 
-        {/* ── Tab Switcher: Upcoming vs Past Rentals ──────────────────────── */}
+        {/* Tabs */}
         <div className="space-y-6">
-          <div className="flex border-b border-gray-200 gap-8 text-sm font-bold">
-            {/* Tab 1: Upcoming & Active */}
+          <div className="flex border-b border-[#004643]/20 dark:border-emerald-500/20 gap-8 text-sm font-black">
             <button
               type="button"
               onClick={() => setActiveTab("upcoming")}
               className={`pb-3 transition-colors flex items-center gap-2 border-b-2 ${
                 activeTab === "upcoming"
-                  ? "border-sky-500 text-sky-600"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                  ? "border-[#004643] dark:border-emerald-400 text-[#004643] dark:text-emerald-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-[#004643]"
               }`}
             >
               <span>Upcoming & Active Rentals</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === "upcoming" ? "bg-sky-100 text-sky-700" : "bg-gray-100 text-gray-600"
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                activeTab === "upcoming" ? "bg-[#004643] dark:bg-emerald-600 text-[#F0EDE5]" : "bg-white dark:bg-[#002A28] text-gray-700 dark:text-gray-300 border border-[#004643]/10"
               }`}>
                 {upcomingBookings.length}
               </span>
             </button>
 
-            {/* Tab 2: Past & Completed */}
             <button
               type="button"
               onClick={() => setActiveTab("past")}
               className={`pb-3 transition-colors flex items-center gap-2 border-b-2 ${
                 activeTab === "past"
-                  ? "border-sky-500 text-sky-600"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                  ? "border-[#004643] dark:border-emerald-400 text-[#004643] dark:text-emerald-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-[#004643]"
               }`}
             >
               <span>Past & Completed</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === "past" ? "bg-sky-100 text-sky-700" : "bg-gray-100 text-gray-600"
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                activeTab === "past" ? "bg-[#004643] dark:bg-emerald-600 text-[#F0EDE5]" : "bg-white dark:bg-[#002A28] text-gray-700 dark:text-gray-300 border border-[#004643]/10"
               }`}>
                 {pastBookings.length}
               </span>
             </button>
           </div>
 
-          {/* ── Reservations List or Empty State ───────────────────────────── */}
+          {/* List or Empty State */}
           {currentList.length > 0 ? (
             <div className="space-y-4">
               {currentList.map((booking) => (
@@ -196,21 +160,20 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-3xl p-12 border border-gray-200 text-center space-y-4 shadow-sm">
-              <div className="text-5xl">🛴</div>
-              <h2 className="text-lg font-bold text-gray-800">
+            <div className="bg-white dark:bg-[#002A28] rounded-3xl p-12 border border-[#004643]/15 dark:border-emerald-500/20 text-center space-y-4 shadow-sm">
+              <h2 className="text-lg font-black text-[#004643] dark:text-white">
                 {activeTab === "upcoming" ? "No Active or Upcoming Reservations" : "No Past Rentals Recorded"}
               </h2>
-              <p className="text-xs text-gray-400 max-w-sm mx-auto">
+              <p className="text-xs text-gray-600 dark:text-gray-300 max-w-sm mx-auto font-medium">
                 {activeTab === "upcoming"
-                  ? "You don't have any scooters reserved right now. Explore our catalog of electric scooters!"
+                  ? "You don't have any electric scooters reserved right now. Explore our fleet catalog!"
                   : "Your past completed rentals will appear here once finished."}
               </p>
               {activeTab === "upcoming" && (
                 <div>
                   <Link
                     href="/vehicles"
-                    className="inline-block bg-sky-500 hover:bg-sky-600 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition-colors shadow-xs"
+                    className="inline-block bg-[#004643] dark:bg-emerald-600 hover:bg-[#003633] text-[#F0EDE5] dark:text-white font-black px-6 py-3 rounded-2xl text-xs transition-colors shadow-md"
                   >
                     Browse Catalog
                   </Link>

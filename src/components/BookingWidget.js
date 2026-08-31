@@ -133,7 +133,10 @@ export default function BookingWidget({ vehicle }) {
 
         {/* Feature 10: Email Notification Confirmation Notice */}
         <div className="bg-sky-50 text-sky-800 text-[11px] font-medium p-2.5 rounded-xl border border-sky-100 flex items-center justify-center gap-1.5">
-          <span>📧</span>
+          <svg className="w-3.5 h-3.5 text-sky-600 fill-current" viewBox="0 0 20 20">
+            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+          </svg>
           <span>Confirmation email sent to your inbox!</span>
         </div>
 
@@ -279,26 +282,24 @@ export default function BookingWidget({ vehicle }) {
 
         {/* ── Auth-Aware Reservation Action Button ──────────────────────── */}
         {isAuthenticated ? (
-          <Button
+          <button
             type="submit"
-            variant="primary"
-            fullWidth
-            isLoading={isLoading}
-            disabled={!isValidRange}
+            disabled={isLoading || !isValidRange}
+            className="w-full py-3.5 bg-[#004643] hover:bg-[#003633] text-[#F0EDE5] font-black rounded-2xl text-xs shadow-md transition-all disabled:opacity-50"
           >
-            Confirm & Reserve
-          </Button>
+            {isLoading ? "Reserving Scooter..." : "Confirm & Reserve Scooter"}
+          </button>
         ) : (
           <div className="space-y-2">
             <Link
               href="/login"
-              className="w-full inline-flex items-center justify-center bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-xl text-sm py-3 px-4 shadow-xs transition-colors"
+              className="w-full inline-flex items-center justify-center bg-[#004643] hover:bg-[#003633] text-[#F0EDE5] font-black rounded-2xl text-xs py-3.5 px-4 shadow-md transition-all"
             >
-              Log In to Reserve
+              Sign In to Reserve Scooter
             </Link>
-            <p className="text-[11px] text-gray-400 text-center">
+            <p className="text-[11px] text-gray-500 text-center font-medium">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-sky-600 hover:underline">
+              <Link href="/register" className="text-[#004643] font-bold hover:underline">
                 Sign up in 30 seconds
               </Link>
             </p>
@@ -306,8 +307,8 @@ export default function BookingWidget({ vehicle }) {
         )}
       </form>
 
-      <div className="pt-2 text-[11px] text-gray-400 space-y-1 text-center border-t border-gray-100">
-        <p>🔒 Instant confirmation • 24/7 Hub Pickup</p>
+      <div className="pt-2 text-[11px] text-gray-500 font-medium space-y-1 text-center border-t border-gray-100">
+        <p>Instant confirmation • Zero security deposit required</p>
         <p>Free cancellation up to 1 hour before pickup.</p>
       </div>
     </div>

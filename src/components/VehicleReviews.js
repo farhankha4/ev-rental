@@ -180,16 +180,16 @@ export default function VehicleReviews({ vehicleId }) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-xs disabled:opacity-50"
+              className="bg-[#004643] hover:bg-[#003633] text-[#F0EDE5] font-black px-6 py-3 rounded-2xl transition-all shadow-md text-xs disabled:opacity-50"
             >
-              {isSubmitting ? "Submitting..." : "Submit Review"}
+              {isSubmitting ? "Submitting Review..." : "Submit Rider Review"}
             </button>
           </form>
         ) : (
-          <div className="text-xs text-gray-500 flex items-center justify-between">
+          <div className="text-xs text-gray-600 font-medium flex items-center justify-between">
             <span>Log in to share your experience with this scooter.</span>
-            <Link href="/login" className="text-sky-600 font-bold hover:underline">
-              Log In
+            <Link href="/login" className="text-[#004643] font-black hover:underline">
+              Sign In to Review
             </Link>
           </div>
         )}

@@ -87,7 +87,7 @@ def send_booking_confirmation_email(user_email: str, user_name: str, booking: Di
     return_time = str(booking.get("return_time", "N/A"))
     total_amount = booking.get("total_amount", 0.0)
 
-    subject = f"⚡ SwiftVolt Reservation Confirmed — Booking #{booking_id[:8]}"
+    subject = f"⚡ Evora Reservation Confirmed — Booking #{booking_id[:8]}"
 
     html_content = f"""
     <!DOCTYPE html>
@@ -96,7 +96,7 @@ def send_booking_confirmation_email(user_email: str, user_name: str, booking: Di
       <style>
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9fafb; color: #111827; margin: 0; padding: 20px; }}
         .card {{ max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e5e7eb; overflow: hidden; font-size: 14px; }}
-        .header {{ background: #0284c7; color: #ffffff; padding: 24px; text-align: center; }}
+        .header {{ background: #004643; color: #ffffff; padding: 24px; text-align: center; }}
         .content {{ padding: 24px; line-height: 1.6; }}
         .detail-box {{ background: #f3f4f6; border-radius: 12px; padding: 16px; margin: 16px 0; }}
         .footer {{ text-align: center; font-size: 12px; color: #6b7280; padding: 16px; border-top: 1px solid #f3f4f6; }}
@@ -106,20 +106,20 @@ def send_booking_confirmation_email(user_email: str, user_name: str, booking: Di
     <body>
       <div class="card">
         <div class="header">
-          <h1 style="margin:0; font-size: 24px;">⚡ SwiftVolt EV Rentals</h1>
+          <h1 style="margin:0; font-size: 24px;">⚡ Evora EV Rentals</h1>
           <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">Reservation Confirmation</p>
         </div>
         <div class="content">
           <p>Hi <strong>{user_name}</strong>,</p>
-          <p>Thank you for choosing SwiftVolt! Your electric scooter reservation has been created successfully.</p>
+          <p>Thank you for choosing Evora! Your electric scooter reservation has been created successfully.</p>
           
           <div class="detail-box">
-            <h3 style="margin-top:0; color: #0284c7;">Booking Summary</h3>
-            <p><strong>Scooter:</strong> SwiftVolt {scooter_name}</p>
+            <h3 style="margin-top:0; color: #004643;">Booking Summary</h3>
+            <p><strong>Scooter:</strong> Evora {scooter_name}</p>
             <p><strong>Booking Reference:</strong> <code>{booking_id}</code></p>
             <p><strong>Pickup Date:</strong> {pickup}</p>
             <p><strong>Return Date:</strong> {return_time}</p>
-            <p><strong>Total Amount:</strong> <span style="font-size: 18px; font-weight: bold; color: #0284c7;">₹{total_amount:,.2f}</span></p>
+            <p><strong>Total Amount:</strong> <span style="font-size: 18px; font-weight: bold; color: #004643;">₹{total_amount:,.2f}</span></p>
             <p><strong>Status:</strong> <span class="badge">Reserved</span></p>
           </div>
 
@@ -127,7 +127,7 @@ def send_booking_confirmation_email(user_email: str, user_name: str, booking: Di
           <p>Ride safe and enjoy zero-emission mobility!</p>
         </div>
         <div class="footer">
-          SwiftVolt EV Rental Platform • Support: support@swiftvolt.com
+          Evora EV Rental Platform • Support: support@evora.com
         </div>
       </div>
     </body>
@@ -152,7 +152,7 @@ def send_payment_receipt_email(user_email: str, user_name: str, booking: Dict[st
     scooter_name = booking.get("vehicle", {}).get("name", "Electric Scooter") if isinstance(booking.get("vehicle"), dict) else "Electric Scooter"
     total_amount = booking.get("total_amount", 0.0)
 
-    subject = f"💳 Payment Receipt — SwiftVolt Booking #{booking_id[:8]}"
+    subject = f"💳 Payment Receipt — Evora Booking #{booking_id[:8]}"
 
     html_content = f"""
     <!DOCTYPE html>
@@ -161,7 +161,7 @@ def send_payment_receipt_email(user_email: str, user_name: str, booking: Dict[st
       <style>
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9fafb; color: #111827; margin: 0; padding: 20px; }}
         .card {{ max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e5e7eb; overflow: hidden; font-size: 14px; }}
-        .header {{ background: #16a34a; color: #ffffff; padding: 24px; text-align: center; }}
+        .header {{ background: #004643; color: #ffffff; padding: 24px; text-align: center; }}
         .content {{ padding: 24px; line-height: 1.6; }}
         .detail-box {{ background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin: 16px 0; }}
         .footer {{ text-align: center; font-size: 12px; color: #6b7280; padding: 16px; border-top: 1px solid #f3f4f6; }}
@@ -172,25 +172,25 @@ def send_payment_receipt_email(user_email: str, user_name: str, booking: Dict[st
       <div class="card">
         <div class="header">
           <h1 style="margin:0; font-size: 24px;">💳 Payment Successful</h1>
-          <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">SwiftVolt Payment Receipt</p>
+          <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">Evora Payment Receipt</p>
         </div>
         <div class="content">
           <p>Hi <strong>{user_name}</strong>,</p>
           <p>We have received your payment via Razorpay. Your scooter rental is now <strong>fully confirmed</strong>!</p>
           
           <div class="detail-box">
-            <h3 style="margin-top:0; color: #16a34a;">Receipt Details</h3>
+            <h3 style="margin-top:0; color: #004643;">Receipt Details</h3>
             <p><strong>Razorpay Payment ID:</strong> <code>{payment_id}</code></p>
             <p><strong>Booking Reference:</strong> <code>{booking_id}</code></p>
-            <p><strong>Scooter:</strong> SwiftVolt {scooter_name}</p>
-            <p><strong>Amount Paid:</strong> <span style="font-size: 18px; font-weight: bold; color: #16a34a;">₹{total_amount:,.2f}</span></p>
+            <p><strong>Scooter:</strong> Evora {scooter_name}</p>
+            <p><strong>Amount Paid:</strong> <span style="font-size: 18px; font-weight: bold; color: #004643;">₹{total_amount:,.2f}</span></p>
             <p><strong>Payment Status:</strong> <span class="badge">PAID</span></p>
           </div>
 
           <p>Your scooter is prepped and ready for pickup at your selected time.</p>
         </div>
         <div class="footer">
-          SwiftVolt EV Rental Platform • Support: support@swiftvolt.com
+          Evora EV Rental Platform • Support: support@evora.com
         </div>
       </div>
     </body>

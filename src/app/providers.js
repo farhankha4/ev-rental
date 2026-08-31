@@ -1,19 +1,16 @@
 "use client";
 
-// ─── Feature 1 & 3: Global Application Providers ───────────────────────────
-//
-// Combines client-side context providers:
-//   1. QueryClientProvider (TanStack Query) for data caching & state
-//   2. AuthProvider (Feature 3) for user session & JWT management
+// ─── Global Application Providers ───────────────────────────────────────────
+// Includes TanStack Query, AuthProvider, and ThemeProvider for Dark Mode.
 //
 // ────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export default function Providers({ children }) {
-  // Create a persistent QueryClient instance for client-side caching
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -27,9 +24,11 @@ export default function Providers({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        {children}
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
